@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Match Score Tracker</title>
+<style>
+  :root{
+    --bg: #000000;
+    --panel: #111214;
+    --divider: #2a2c30;
+    --text: #FFFFFF;
+    --p1: #39E0FF;
+    --p2: #FF4D6D;
+    --goal: #2FE875;
+    --foul: #FFA733;
+    --warn: #FFD54A;
+    --penalty: #FF3B3B;
+    --amber: #FFC94A;
+  }
+
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body{
+    margin:0;
+    padding:0;
+    height:100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+    overflow: hidden;
+  }
+
+  body{
+    display:flex;
+    flex-direction:column;
+    height:100dvh;
+    width:100vw;
+  }
+
+  /* ---------- SET SCORES BAR ---------- */
+  .set-scores-bar{
+    flex: 0 0 auto;
+    display:grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 2px;
+    background: var(--divider);
+    min-height: 32px;
+  }
+
+  .set-score{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: #15161a;
+    color: var(--text);
+    font-weight: 700;
+    font-size: clamp(10px, 2vh, 15px);
+    letter-spacing: 0.03em;
+    padding: 2px 4px;
+    text-align:center;
+  }
+
+  /* ---------- SCORE DISPLAY ---------- */
+  .scoreboard{
+    flex: 1 1 0;
+    display:flex;
+    position:relative;
+    min-height: 0;
+  }
+
+  .score-half{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap: clamp(4px, 1.5vh, 12px);
+    padding: 8px 4px;
+    min-width:0;
+  }
+
+  .score-half.p1 .score-num{ color: var(--p1); text-shadow: 0 0 18px rgba(57,224,255,0.45); }
+  .score-half.p2 .score-num{ color: var(--p2); text-shadow: 0 0 18px rgba(255,77,109,0.45); }
+
+  .player-label{
+    font-size: clamp(14px, 3.2vh, 22px);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+    opacity: 0.85;
+  }
+  .score-half.p1 .player-label{ color: var(--p1); }
+  .score-half.p2 .player-label{ color: var(--p2); }
+
+  input.player-label{
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    outline: none;
+    width: 92%;
+    max-width: 260px;
+    padding: 2px 4px;
+    color: inherit;
+  }
+  input.player-label:focus{ border-bottom-color: var(--amber); }
+
+  .score-num{
+    font-family: 'Courier New', Consolas, monospace;
+    font-weight: 900;
+    font-size: clamp(48px, 15vh, 180px);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .serve-dots{
+    display:flex;
+    gap: 10px;
+    height: clamp(14px, 2vh, 20px);
+    align-items:center;
+  }
+  .serve-dot{
+    width: clamp(10px, 1.6vh, 16px);
+    height: clamp(10px, 1.6vh, 16px);
+    border-radius: 50%;
+    border: 2px solid var(--amber);
+    background: transparent;
+  }
+  .serve-dot.filled{ background: var(--amber); }
+
+  .center-divider{
+    position:absolute;
+    left:50%;
+    top:8%;
+    bottom:8%;
+    width:2px;
+    background: var(--divider);
+    transform: translateX(-1px);
+  }
+
+  /* ---------- SERVE STATE BOX ---------- */
+  .serve-state-bar{
+    flex: 0 0 auto;
+    min-height: 42px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: #1b1c1f;
+    color: var(--amber);
+    font-weight: 700;
+    font-size: clamp(13px, 2.6vh, 22px);
+    letter-spacing: 0.04em;
+    text-align:center;
+    padding: 5px 10px;
+    border-top: 2px solid var(--divider);
+    border-bottom: 2px solid var(--divider);
+  }
+
+  .serve-state-bar.win{
+    background: #1a2e1a;
+    color: var(--goal);
+  }
+
+  /* ---------- CONTROL BUTTONS ---------- */
+  .controls{
+    flex: 1.4 1 0;
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: 1.5fr 1.5fr 1fr;
+    gap: 3px;
+    background: var(--divider);
+    min-height:0;
+  }
+
+  .action-btn.wide{ grid-column: span 2; }
+
+  button{
+    border:none;
+    margin:0;
+    font-family: inherit;
+    cursor:pointer;
+    color: var(--text);
+    display:flex;
+    flex-direction: column;
+    align-items:center;
+    justify-content:center;
+    gap: 4px;
+    -webkit-user-select:none;
+    user-select:none;
+  }
+
+  button:active{ filter: brightness(0.8); }
+  button:focus-visible{ outline: 4px solid var(--amber); outline-offset: -4px; }
+
+  .action-btn{
+    background: var(--panel);
+    line-height:1.1;
+  }
+
+  .action-btn[disabled]{
+    opacity: 0.35;
+    cursor: default;
+  }
+  .action-btn[disabled]:active{ filter:none; }
+
+  .btn-player{
+    font-size: clamp(13px, 2.8vh, 24px);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .action-btn.p1 .btn-player{ color: var(--p1); }
+  .action-btn.p2 .btn-player{ color: var(--p2); }
+
+  .btn-action{
+    font-size: clamp(22px, 5.6vh, 50px);
+    font-weight: 900;
+  }
+  .action-btn.goal .btn-action{ color: var(--goal); }
+  .action-btn.foul .btn-action{ color: var(--foul); }
+  .action-btn.warn .btn-action{ color: var(--warn); }
+  .action-btn.warn.triggered .btn-action{ color: var(--penalty); }
+  .action-btn.timeout .btn-action{ color: var(--amber); }
+
+  .action-btn.compact .btn-player{
+    font-size: clamp(8px, 1.6vh, 13px);
+  }
+  .action-btn.compact .btn-action{
+    font-size: clamp(11px, 2.6vh, 20px);
+  }
+
+  /* ---------- BOTTOM BAR ---------- */
+  .bottom-bar{
+    flex: 0 0 auto;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px;
+    background: var(--divider);
+    min-height: 64px;
+  }
+
+  .undo-btn{
+    background: #1b1c1f;
+    color: var(--amber);
+    font-size: clamp(16px, 3.4vh, 28px);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .undo-btn[disabled]{
+    color: #6b6552;
+    cursor: default;
+  }
+  .undo-btn[disabled]:active{ filter:none; }
+
+  .reset-btn{
+    background: #3a1414;
+    color: #FF8A80;
+    font-size: clamp(16px, 3.4vh, 28px);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  @media (max-width: 480px){
+    .player-label{ font-size: clamp(12px, 2.6vh, 18px); }
+  }
+
+  @media (orientation: landscape) and (max-height: 500px){
+    .set-scores-bar{ min-height: 24px; }
+    .serve-state-bar{ min-height: 30px; }
+    .bottom-bar{ min-height: 46px; }
+  }
+
+  .sr-only{
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+</style>
+</head>
+<body>
+
+  <div class="set-scores-bar">
+    <div class="set-score" id="setScore1">Set 1: ---</div>
+    <div class="set-score" id="setScore2">Set 2: ---</div>
+    <div class="set-score" id="setScore3">Set 3: ---</div>
+  </div>
+
+  <div class="scoreboard">
+    <div class="center-divider"></div>
+    <div class="score-half p1">
+      <input type="text" class="player-label" id="p1NameInput" value="Player 1" maxlength="24">
+      <div class="score-num" id="score1">0</div>
+      <div class="serve-dots" id="dots1">
+        <div class="serve-dot" id="dot1a"></div>
+        <div class="serve-dot" id="dot1b"></div>
+      </div>
+    </div>
+    <div class="score-half p2">
+      <input type="text" class="player-label" id="p2NameInput" value="Player 2" maxlength="24">
+      <div class="score-num" id="score2">0</div>
+      <div class="serve-dots" id="dots2">
+        <div class="serve-dot" id="dot2a"></div>
+        <div class="serve-dot" id="dot2b"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="serve-state-bar" id="serveState" role="status" aria-live="polite">Player 1 &middot; 1st Serve</div>
+
+  <div class="controls">
+    <button class="action-btn goal p1 wide" id="p1goal" aria-label="Player 1 Goal">
+      <span class="btn-player" id="p1goalLabel">Player 1</span>
+      <span class="btn-action">GOAL</span>
+    </button>
+    <button class="action-btn goal p2 wide" id="p2goal" aria-label="Player 2 Goal">
+      <span class="btn-player" id="p2goalLabel">Player 2</span>
+      <span class="btn-action">GOAL</span>
+    </button>
+    <button class="action-btn foul p1 wide" id="p1foul" aria-label="Player 1 Foul">
+      <span class="btn-player" id="p1foulLabel">Player 1</span>
+      <span class="btn-action">FOUL</span>
+    </button>
+    <button class="action-btn foul p2 wide" id="p2foul" aria-label="Player 2 Foul">
+      <span class="btn-player" id="p2foulLabel">Player 2</span>
+      <span class="btn-action">FOUL</span>
+    </button>
+    <button class="action-btn warn p1 compact" id="p1warn" aria-label="Player 1 Warning">
+      <span class="btn-player" id="p1warnLabel">Player 1</span>
+      <span class="btn-action" id="p1warnAction">WARNING</span>
+    </button>
+    <button class="action-btn timeout p1 compact" id="p1timeout" aria-label="Player 1 Time Out">
+      <span class="btn-player" id="p1timeoutLabel">Player 1</span>
+      <span class="btn-action">TIME OUT</span>
+    </button>
+    <button class="action-btn timeout p2 compact" id="p2timeout" aria-label="Player 2 Time Out">
+      <span class="btn-player" id="p2timeoutLabel">Player 2</span>
+      <span class="btn-action">TIME OUT</span>
+    </button>
+    <button class="action-btn warn p2 compact" id="p2warn" aria-label="Player 2 Warning">
+      <span class="btn-player" id="p2warnLabel">Player 2</span>
+      <span class="btn-action" id="p2warnAction">WARNING</span>
+    </button>
+  </div>
+
+  <div class="bottom-bar">
+    <button class="undo-btn" id="undoBtn" disabled>Undo</button>
+    <button class="reset-btn" id="resetBtn">Reset</button>
+  </div>
+
+  <div id="announcer" class="sr-only" aria-live="polite" role="status"></div>
+
+  <audio id="winSound" src="win.mp3" preload="auto"></audio>
+
+<script>
+  let score1 = 0;
+  let score2 = 0;
+  // serve state: 0 = P1 1st, 1 = P1 2nd, 2 = P2 1st, 3 = P2 2nd
+  let serveState = 0;
+  let history = []; // { type, player, amount?, prevServe? }
+  let winner = null; // null, 1, or 2 -- winner of the CURRENT set
+  let player1Name = 'Player 1';
+  let player2Name = 'Player 2';
+  let p1WarningIssued = false;
+  let p2WarningIssued = false;
+  let p1TimeoutUsed = false;
+  let p2TimeoutUsed = false;
+  let timeoutActive = false;
+  let timeoutIntervalId = null;
+
+  // Match / set state
+  let currentSet = 1; // 1, 2, or 3
+  let setsWonP1 = 0;
+  let setsWonP2 = 0;
+  let setScores = [null, null, null]; // { p1, p2 } per completed set
+  let matchOver = false;
+  let setTransitionTimeoutId = null;
+
+  // "Change ends" message (set 3 only, once per match)
+  let changeEndsTriggered = false;
+  let changeEndsActive = false;
+  let changeEndsTimeoutId = null;
+
+  const score1El = document.getElementById('score1');
+  const score2El = document.getElementById('score2');
+  const serveStateEl = document.getElementById('serveState');
+  const undoBtn = document.getElementById('undoBtn');
+  const announcer = document.getElementById('announcer');
+  const winSound = document.getElementById('winSound');
+  const p1NameInput = document.getElementById('p1NameInput');
+  const p2NameInput = document.getElementById('p2NameInput');
+  const p1goalBtn = document.getElementById('p1goal');
+  const p2goalBtn = document.getElementById('p2goal');
+  const p1foulBtn = document.getElementById('p1foul');
+  const p2foulBtn = document.getElementById('p2foul');
+  const p1warnBtn = document.getElementById('p1warn');
+  const p2warnBtn = document.getElementById('p2warn');
+  const p1timeoutBtn = document.getElementById('p1timeout');
+  const p2timeoutBtn = document.getElementById('p2timeout');
+  const p1goalLabel = document.getElementById('p1goalLabel');
+  const p2goalLabel = document.getElementById('p2goalLabel');
+  const p1foulLabel = document.getElementById('p1foulLabel');
+  const p2foulLabel = document.getElementById('p2foulLabel');
+  const p1warnLabel = document.getElementById('p1warnLabel');
+  const p2warnLabel = document.getElementById('p2warnLabel');
+  const p1warnAction = document.getElementById('p1warnAction');
+  const p2warnAction = document.getElementById('p2warnAction');
+  const p1timeoutLabel = document.getElementById('p1timeoutLabel');
+  const p2timeoutLabel = document.getElementById('p2timeoutLabel');
+  const actionButtons = [p1goalBtn, p2goalBtn, p1foulBtn, p2foulBtn, p1warnBtn, p2warnBtn];
+  const setScoreEls = [
+    document.getElementById('setScore1'),
+    document.getElementById('setScore2'),
+    document.getElementById('setScore3')
+  ];
+
+  const dots = {
+    1: [document.getElementById('dot1a'), document.getElementById('dot1b')],
+    2: [document.getElementById('dot2a'), document.getElementById('dot2b')]
+  };
+
+  function getServeLabels(){
+    return [
+      player1Name + ' \u00b7 1st Serve',
+      player1Name + ' \u00b7 2nd Serve',
+      player2Name + ' \u00b7 1st Serve',
+      player2Name + ' \u00b7 2nd Serve'
+    ];
+  }
+
+  function announce(message){
+    // Clear first so repeated identical messages are still announced
+    announcer.textContent = '';
+    setTimeout(() => { announcer.textContent = message; }, 50);
+  }
+
+  function announceScores(){
+    const won = checkWin();
+    if(won === 1){
+      announce(score1 + '. ' + score2 + '.');
+    } else if(won === 2){
+      announce(score2 + '. ' + score1 + '.');
+    } else if(serveState === 2 || serveState === 3){
+      announce(score2 + '. ' + score1 + '.');
+    } else {
+      announce(score1 + '. ' + score2 + '.');
+    }
+  }
+
+  function renderScores(){
+    score1El.textContent = score1;
+    score2El.textContent = score2;
+  }
+
+  function renderSetScores(){
+    for(let i = 0; i < 3; i++){
+      const s = setScores[i];
+      setScoreEls[i].textContent = 'Set ' + (i + 1) + ': ' + (s ? (s.p1 + '-' + s.p2) : '---');
+    }
+  }
+
+  function currentServeDisplayText(){
+    if(matchOver){
+      const winnerName = winner === 1 ? player1Name : player2Name;
+      const scoreText = winner === 1 ? (setsWonP1 + '-' + setsWonP2) : (setsWonP2 + '-' + setsWonP1);
+      return winnerName + ' wins the match: ' + scoreText;
+    }
+    if(winner !== null){
+      return (winner === 1 ? player1Name : player2Name) + ' wins set ' + currentSet;
+    }
+    return getServeLabels()[serveState];
+  }
+
+  function renderServe(){
+    if(!timeoutActive && !changeEndsActive){
+      serveStateEl.textContent = currentServeDisplayText();
+      serveStateEl.classList.toggle('win', matchOver || winner !== null);
+    }
+
+    const servingPlayer = serveState < 2 ? 1 : 2;
+    const filledCount = (serveState % 2 === 0) ? 1 : 2;
+
+    [1,2].forEach(player => {
+      dots[player].forEach((dot, i) => {
+        const isServer = player === servingPlayer;
+        dot.classList.toggle('filled', isServer && i < filledCount);
+        dot.style.visibility = isServer ? 'visible' : 'hidden';
+      });
+    });
+  }
+
+  function updateUndoState(){
+    undoBtn.disabled = history.length === 0;
+  }
+
+  function checkWin(){
+    if(score1 >= 11 && score1 - score2 >= 2) return 1;
+    if(score2 >= 11 && score2 - score1 >= 2) return 2;
+    return null;
+  }
+
+  function setActionButtonsDisabled(disabled){
+    actionButtons.forEach(btn => { btn.disabled = disabled; });
+  }
+
+  function refreshButtonStates(){
+    const blocked = winner !== null || timeoutActive;
+    setActionButtonsDisabled(blocked);
+    p1timeoutBtn.disabled = blocked || p1TimeoutUsed;
+    p2timeoutBtn.disabled = blocked || p2TimeoutUsed;
+  }
+
+  function finalizeSetWin(player){
+    winner = player;
+    refreshButtonStates();
+
+    winSound.currentTime = 0;
+    winSound.play().catch(() => {});
+
+    setScores[currentSet - 1] = { p1: score1, p2: score2 };
+    renderSetScores();
+
+    if(player === 1){ setsWonP1++; } else { setsWonP2++; }
+
+    if(setsWonP1 === 2 || setsWonP2 === 2){
+      matchOver = true;
+      renderServe();
+    } else {
+      renderServe();
+      const nextServePlayer = (currentSet === 1) ? 2 : 1;
+      if(setTransitionTimeoutId){ clearTimeout(setTransitionTimeoutId); }
+      setTransitionTimeoutId = setTimeout(() => {
+        setTransitionTimeoutId = null;
+        softResetForNextSet(nextServePlayer);
+      }, 4000);
+    }
+  }
+
+  function clearSetWin(){
+    // Undo has reversed the point that had just finalized a set: unwind that finalization
+    if(setTransitionTimeoutId){ clearTimeout(setTransitionTimeoutId); setTransitionTimeoutId = null; }
+
+    if(winner === 1){ setsWonP1--; } else if(winner === 2){ setsWonP2--; }
+    setScores[currentSet - 1] = null;
+    renderSetScores();
+
+    matchOver = false;
+    winner = null;
+    refreshButtonStates();
+    renderServe();
+  }
+
+  function softResetForNextSet(startServePlayer){
+    history.push({
+      type: 'setTransition',
+      completedSet: currentSet,
+      winner: winner,
+      scoreAtEnd: { p1: score1, p2: score2 },
+      serveStateAtEnd: serveState,
+      warningAtEnd: { p1: p1WarningIssued, p2: p2WarningIssued },
+      timeoutUsedAtEnd: { p1: p1TimeoutUsed, p2: p2TimeoutUsed }
+    });
+
+    currentSet++;
+    winner = null;
+    score1 = 0;
+    score2 = 0;
+    serveState = (startServePlayer === 1) ? 0 : 2;
+    p1WarningIssued = false;
+    p2WarningIssued = false;
+    p1TimeoutUsed = false;
+    p2TimeoutUsed = false;
+
+    refreshButtonStates();
+    renderScores();
+    renderServe();
+    updateUndoState();
+    updateWarnButtonUI(1);
+    updateWarnButtonUI(2);
+  }
+
+  function applyWinCheck(){
+    const won = checkWin();
+    if(won && winner === null){
+      finalizeSetWin(won);
+    } else if(!won && winner !== null){
+      clearSetWin();
+    }
+  }
+
+  function checkChangeEnds(){
+    if(currentSet !== 3 || changeEndsTriggered) return;
+    if(score1 === 6 || score1 === 7 || score2 === 6 || score2 === 7){
+      changeEndsTriggered = true;
+      triggerChangeEndsMessage();
+    }
+  }
+
+  function triggerChangeEndsMessage(){
+    changeEndsActive = true;
+    serveStateEl.classList.remove('win');
+    serveStateEl.textContent = 'Change ends';
+
+    if(changeEndsTimeoutId){ clearTimeout(changeEndsTimeoutId); }
+    changeEndsTimeoutId = setTimeout(() => {
+      changeEndsTimeoutId = null;
+      changeEndsActive = false;
+      renderServe();
+    }, 4000);
+  }
+
+  function rearmChangeEndsIfUndone(){
+    if(currentSet !== 3 || !changeEndsTriggered) return;
+    if(score1 === 6 || score1 === 7 || score2 === 6 || score2 === 7) return;
+
+    changeEndsTriggered = false;
+
+    if(changeEndsTimeoutId){ clearTimeout(changeEndsTimeoutId); changeEndsTimeoutId = null; }
+    if(changeEndsActive){
+      changeEndsActive = false;
+      renderServe();
+    }
+  }
+
+  function addPoints(player, amount){
+    if(winner !== null) return;
+
+    const prevServe = serveState;
+    if(player === 1){ score1 += amount; } else { score2 += amount; }
+    history.push({ type: 'score', player, amount, prevServe });
+    serveState = (serveState + 1) % 4;
+
+    renderScores();
+    renderServe();
+    announceScores();
+    updateUndoState();
+    checkChangeEnds();
+    applyWinCheck();
+  }
+
+  function updateWarnButtonUI(player){
+    const issued = player === 1 ? p1WarningIssued : p2WarningIssued;
+    const btn = player === 1 ? p1warnBtn : p2warnBtn;
+    const nameSpan = player === 1 ? p1warnLabel : p2warnLabel;
+    const actionSpan = player === 1 ? p1warnAction : p2warnAction;
+    const name = player === 1 ? player1Name : player2Name;
+
+    nameSpan.textContent = name;
+    actionSpan.textContent = issued ? 'PENALTY' : 'WARNING';
+    btn.classList.toggle('triggered', issued);
+    btn.setAttribute('aria-label', name + (issued ? ' Penalty' : ' Warning'));
+  }
+
+  function handleWarning(player){
+    if(winner !== null) return;
+
+    const issued = player === 1 ? p1WarningIssued : p2WarningIssued;
+
+    if(!issued){
+      if(player === 1){ p1WarningIssued = true; } else { p2WarningIssued = true; }
+      history.push({ type: 'warning', player });
+      updateWarnButtonUI(player);
+      updateUndoState();
+      return;
+    }
+
+    // Warning already issued: add 2 points to the OTHER player, serve state untouched
+    history.push({ type: 'penalty', player });
+    if(player === 1){ score2 += 2; } else { score1 += 2; }
+
+    renderScores();
+    announceScores();
+    updateUndoState();
+    checkChangeEnds();
+    applyWinCheck();
+  }
+
+  function refreshNameDependentUI(){
+    p1goalLabel.textContent = player1Name;
+    p1foulLabel.textContent = player1Name;
+    p2goalLabel.textContent = player2Name;
+    p2foulLabel.textContent = player2Name;
+
+    p1goalBtn.setAttribute('aria-label', player1Name + ' Goal');
+    p1foulBtn.setAttribute('aria-label', player1Name + ' Foul');
+    p2goalBtn.setAttribute('aria-label', player2Name + ' Goal');
+    p2foulBtn.setAttribute('aria-label', player2Name + ' Foul');
+
+    updateWarnButtonUI(1);
+    updateWarnButtonUI(2);
+
+    p1timeoutLabel.textContent = player1Name;
+    p2timeoutLabel.textContent = player2Name;
+    p1timeoutBtn.setAttribute('aria-label', player1Name + ' Time Out');
+    p2timeoutBtn.setAttribute('aria-label', player2Name + ' Time Out');
+
+    renderServe();
+  }
+
+  function updatePlayerNames(){
+    player1Name = p1NameInput.value.trim() || 'Player 1';
+    player2Name = p2NameInput.value.trim() || 'Player 2';
+    refreshNameDependentUI();
+  }
+
+  p1NameInput.addEventListener('input', updatePlayerNames);
+  p2NameInput.addEventListener('input', updatePlayerNames);
+
+  p1NameInput.addEventListener('focus', () => { p1NameInput.value = ''; });
+  p2NameInput.addEventListener('focus', () => { p2NameInput.value = ''; });
+
+  p1NameInput.addEventListener('blur', () => {
+    if(p1NameInput.value.trim() === ''){ p1NameInput.value = 'Player 1'; }
+    updatePlayerNames();
+  });
+  p2NameInput.addEventListener('blur', () => {
+    if(p2NameInput.value.trim() === ''){ p2NameInput.value = 'Player 2'; }
+    updatePlayerNames();
+  });
+
+  p1NameInput.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter'){ e.preventDefault(); p1NameInput.blur(); }
+  });
+  p2NameInput.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter'){ e.preventDefault(); p2NameInput.blur(); }
+  });
+
+  document.getElementById('p1goal').addEventListener('click', () => addPoints(1, 2));
+  document.getElementById('p2goal').addEventListener('click', () => addPoints(2, 2));
+  document.getElementById('p1foul').addEventListener('click', () => addPoints(2, 1));
+  document.getElementById('p2foul').addEventListener('click', () => addPoints(1, 1));
+
+  p1warnBtn.addEventListener('click', () => handleWarning(1));
+  p2warnBtn.addEventListener('click', () => handleWarning(2));
+
+  function startTimeout(player){
+    if(winner !== null || timeoutActive) return;
+    const used = player === 1 ? p1TimeoutUsed : p2TimeoutUsed;
+    if(used) return;
+
+    if(player === 1){ p1TimeoutUsed = true; } else { p2TimeoutUsed = true; }
+    timeoutActive = true;
+    history.push({ type: 'timeout', player });
+    updateUndoState();
+    refreshButtonStates();
+
+    const name = player === 1 ? player1Name : player2Name;
+
+    // Suppress auto-announcement of every tick; explicit announce() calls still work via the hidden live region
+    serveStateEl.setAttribute('aria-live', 'off');
+    serveStateEl.classList.remove('win');
+
+    let remaining = 60;
+    serveStateEl.textContent = name + ' Time Out: ' + remaining;
+
+    timeoutIntervalId = setInterval(() => {
+      remaining--;
+
+      if(remaining === 15){
+        serveStateEl.textContent = '15 seconds remaining';
+        announce('15 seconds remaining');
+      } else if(remaining > 15){
+        serveStateEl.textContent = name + ' Time Out: ' + remaining;
+      } else if(remaining > 0){
+        serveStateEl.textContent = remaining + ' seconds remaining';
+      }
+
+      if(remaining <= 0){
+        clearInterval(timeoutIntervalId);
+        timeoutIntervalId = null;
+        timeoutActive = false;
+
+        serveStateEl.setAttribute('aria-live', 'polite');
+        renderServe();
+
+        announce('Time out over');
+        refreshButtonStates();
+      }
+    }, 1000);
+  }
+
+  p1timeoutBtn.addEventListener('click', () => startTimeout(1));
+  p2timeoutBtn.addEventListener('click', () => startTimeout(2));
+
+  undoBtn.addEventListener('click', () => {
+    if(history.length === 0) return;
+    let last = history.pop();
+
+    // Step back through any set-boundary marker(s) first, restoring set-level state,
+    // then continue to the actual scoring action that ended that set.
+    while(last && last.type === 'setTransition'){
+      currentSet = last.completedSet;
+      score1 = last.scoreAtEnd.p1;
+      score2 = last.scoreAtEnd.p2;
+      serveState = last.serveStateAtEnd;
+      p1WarningIssued = last.warningAtEnd.p1;
+      p2WarningIssued = last.warningAtEnd.p2;
+      p1TimeoutUsed = last.timeoutUsedAtEnd.p1;
+      p2TimeoutUsed = last.timeoutUsedAtEnd.p2;
+      if(last.winner === 1){ setsWonP1--; } else { setsWonP2--; }
+      setScores[last.completedSet - 1] = null;
+      matchOver = false;
+      winner = null;
+      renderSetScores();
+
+      last = history.length ? history.pop() : null;
+    }
+
+    if(!last){
+      refreshButtonStates();
+      renderScores();
+      renderServe();
+      updateUndoState();
+      updateWarnButtonUI(1);
+      updateWarnButtonUI(2);
+      return;
+    }
+
+    if(last.type === 'score'){
+      if(last.player === 1){ score1 -= last.amount; } else { score2 -= last.amount; }
+      serveState = last.prevServe;
+
+      refreshButtonStates();
+      renderScores();
+      renderServe();
+      announceScores();
+      updateUndoState();
+      updateWarnButtonUI(1);
+      updateWarnButtonUI(2);
+      rearmChangeEndsIfUndone();
+      applyWinCheck();
+
+    } else if(last.type === 'warning'){
+      if(last.player === 1){ p1WarningIssued = false; } else { p2WarningIssued = false; }
+      refreshButtonStates();
+      renderScores();
+      renderServe();
+      updateWarnButtonUI(last.player);
+      updateUndoState();
+
+    } else if(last.type === 'penalty'){
+      const opponent = last.player === 1 ? 2 : 1;
+      if(opponent === 1){ score1 -= 2; } else { score2 -= 2; }
+
+      refreshButtonStates();
+      renderScores();
+      renderServe();
+      announceScores();
+      updateWarnButtonUI(1);
+      updateWarnButtonUI(2);
+      updateUndoState();
+      rearmChangeEndsIfUndone();
+      applyWinCheck();
+
+    } else if(last.type === 'timeout'){
+      if(timeoutActive && timeoutIntervalId !== null){
+        clearInterval(timeoutIntervalId);
+        timeoutIntervalId = null;
+        timeoutActive = false;
+        serveStateEl.setAttribute('aria-live', 'polite');
+      }
+
+      if(last.player === 1){ p1TimeoutUsed = false; } else { p2TimeoutUsed = false; }
+
+      refreshButtonStates();
+      renderScores();
+      renderServe();
+      updateUndoState();
+    }
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    if(timeoutIntervalId){ clearInterval(timeoutIntervalId); timeoutIntervalId = null; }
+    if(setTransitionTimeoutId){ clearTimeout(setTransitionTimeoutId); setTransitionTimeoutId = null; }
+    if(changeEndsTimeoutId){ clearTimeout(changeEndsTimeoutId); changeEndsTimeoutId = null; }
+    timeoutActive = false;
+    p1TimeoutUsed = false;
+    p2TimeoutUsed = false;
+    serveStateEl.setAttribute('aria-live', 'polite');
+
+    score1 = 0;
+    score2 = 0;
+    serveState = 0;
+    history = [];
+    winner = null;
+    p1WarningIssued = false;
+    p2WarningIssued = false;
+    changeEndsActive = false;
+    changeEndsTriggered = false;
+
+    currentSet = 1;
+    setsWonP1 = 0;
+    setsWonP2 = 0;
+    setScores = [null, null, null];
+    matchOver = false;
+
+    refreshButtonStates();
+    renderScores();
+    renderServe();
+    renderSetScores();
+    updateUndoState();
+    updateWarnButtonUI(1);
+    updateWarnButtonUI(2);
+    announce('Reset. ' + getServeLabels()[serveState] + '. 0. 0.');
+  });
+
+  renderScores();
+  renderServe();
+  renderSetScores();
+  updateUndoState();
+  updateWarnButtonUI(1);
+  updateWarnButtonUI(2);
+  refreshButtonStates();
+</script>
+
+</body>
+</html>
