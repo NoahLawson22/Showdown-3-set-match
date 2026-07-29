@@ -367,8 +367,8 @@
     <button class="reset-btn" id="resetBtn">Reset</button>
   </div>
 
-  <div id="announcer" class="sr-only" aria-live="polite" role="status"></div>
   <div id="serveAnnouncer" class="sr-only" aria-live="polite" role="status"></div>
+  <div id="announcer" class="sr-only" aria-live="polite" role="status"></div>
 
   <audio id="winSound" src="win.mp3" preload="auto"></audio>
   <audio id="goalSound" src="goal.mp3" preload="auto"></audio>
@@ -500,9 +500,10 @@
     muteBtn.classList.toggle('muted', muted);
   }
 
-  muteBtn.addEventListener('click', () => {
+  muteBtn.addEventListener('click', (e) => {
     muted = !muted;
     updateMuteButtonUI();
+    e.currentTarget.blur();
   });
 
   function announceScores(){
@@ -715,8 +716,10 @@
       if(!muted){
         serveStateEl.setAttribute('aria-live', 'polite');
         announceServe(changeEndsActive ? 'Change ends' : currentServeDisplayText());
-      }
-      if(!matchOver){
+        if(!matchOver){
+          setTimeout(() => { announceScores(); }, 350);
+        }
+      } else if(!matchOver){
         announceScores();
       }
     };
@@ -823,13 +826,13 @@
     if(e.key === 'Enter'){ e.preventDefault(); p2NameInput.blur(); }
   });
 
-  document.getElementById('p1goal').addEventListener('click', () => addPoints(1, 2));
-  document.getElementById('p2goal').addEventListener('click', () => addPoints(2, 2));
-  document.getElementById('p1foul').addEventListener('click', () => addPoints(2, 1));
-  document.getElementById('p2foul').addEventListener('click', () => addPoints(1, 1));
+  document.getElementById('p1goal').addEventListener('click', (e) => { addPoints(1, 2); e.currentTarget.blur(); });
+  document.getElementById('p2goal').addEventListener('click', (e) => { addPoints(2, 2); e.currentTarget.blur(); });
+  document.getElementById('p1foul').addEventListener('click', (e) => { addPoints(2, 1); e.currentTarget.blur(); });
+  document.getElementById('p2foul').addEventListener('click', (e) => { addPoints(1, 1); e.currentTarget.blur(); });
 
-  p1warnBtn.addEventListener('click', () => handleWarning(1));
-  p2warnBtn.addEventListener('click', () => handleWarning(2));
+  p1warnBtn.addEventListener('click', (e) => { handleWarning(1); e.currentTarget.blur(); });
+  p2warnBtn.addEventListener('click', (e) => { handleWarning(2); e.currentTarget.blur(); });
 
   function startTimeout(player){
     if(winner !== null || timeoutActive) return;
@@ -877,10 +880,11 @@
     }, 1000);
   }
 
-  p1timeoutBtn.addEventListener('click', () => startTimeout(1));
-  p2timeoutBtn.addEventListener('click', () => startTimeout(2));
+  p1timeoutBtn.addEventListener('click', (e) => { startTimeout(1); e.currentTarget.blur(); });
+  p2timeoutBtn.addEventListener('click', (e) => { startTimeout(2); e.currentTarget.blur(); });
 
-  undoBtn.addEventListener('click', () => {
+  undoBtn.addEventListener('click', (e) => {
+    e.currentTarget.blur();
     if(history.length === 0) return;
     let last = history.pop();
 
@@ -967,7 +971,8 @@
     }
   });
 
-  document.getElementById('resetBtn').addEventListener('click', () => {
+  document.getElementById('resetBtn').addEventListener('click', (e) => {
+    e.currentTarget.blur();
     if(timeoutIntervalId){ clearInterval(timeoutIntervalId); timeoutIntervalId = null; }
     if(setTransitionTimeoutId){ clearTimeout(setTransitionTimeoutId); setTransitionTimeoutId = null; }
     if(changeEndsTimeoutId){ clearTimeout(changeEndsTimeoutId); changeEndsTimeoutId = null; }
