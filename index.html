@@ -234,7 +234,7 @@
     flex: 0 0 32px;
     height: 32px;
     display:grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 3px;
     background: var(--divider);
   }
@@ -252,6 +252,18 @@
     cursor: default;
   }
   .undo-btn[disabled]:active{ filter:none; }
+
+  .mute-btn{
+    background: #1b1c1f;
+    color: var(--text);
+    font-size: clamp(10px, 2vh, 15px);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .mute-btn.muted{
+    color: #6b6552;
+  }
 
   .reset-btn{
     background: #3a1414;
@@ -351,12 +363,16 @@
 
   <div class="bottom-bar">
     <button class="undo-btn" id="undoBtn" disabled>Undo</button>
+    <button class="mute-btn" id="muteBtn" aria-pressed="false">Unmuted</button>
     <button class="reset-btn" id="resetBtn">Reset</button>
   </div>
 
   <div id="announcer" class="sr-only" aria-live="polite" role="status"></div>
+  <div id="serveAnnouncer" class="sr-only" aria-live="polite" role="status"></div>
 
   <audio id="winSound" src="win.mp3" preload="auto"></audio>
+  <audio id="goalSound" src="goal.mp3" preload="auto"></audio>
+  <audio id="foulSound" src="foul.mp3" preload="auto"></audio>
 
 <script>
   let score1 = 0;
@@ -387,12 +403,18 @@
   let changeEndsActive = false;
   let changeEndsTimeoutId = null;
 
+  let muted = false;
+
   const score1El = document.getElementById('score1');
   const score2El = document.getElementById('score2');
   const serveStateEl = document.getElementById('serveState');
   const undoBtn = document.getElementById('undoBtn');
+  const muteBtn = document.getElementById('muteBtn');
   const announcer = document.getElementById('announcer');
+  const serveAnnouncer = document.getElementById('serveAnnouncer');
   const winSound = document.getElementById('winSound');
+  const goalSound = document.getElementById('goalSound');
+  const foulSound = document.getElementById('foulSound');
   const p1NameInput = document.getElementById('p1NameInput');
   const p2NameInput = document.getElementById('p2NameInput');
   const p1goalBtn = document.getElementById('p1goal');
@@ -439,6 +461,49 @@
     announcer.textContent = '';
     setTimeout(() => { announcer.textContent = message; }, 50);
   }
+
+  function announceServe(message){
+    serveAnnouncer.textContent = '';
+    setTimeout(() => { serveAnnouncer.textContent = message; }, 50);
+  }
+
+  function playSound(audioEl){
+    if(muted) return;
+    audioEl.currentTime = 0;
+    audioEl.play().catch(() => {});
+  }
+
+  function afterSound(audioEl, callback){
+    if(muted){ callback(); return; }
+
+    let finished = false;
+    const finish = () => {
+      if(finished) return;
+      finished = true;
+      audioEl.removeEventListener('ended', finish);
+      audioEl.removeEventListener('error', finish);
+      callback();
+    };
+
+    audioEl.addEventListener('ended', finish);
+    audioEl.addEventListener('error', finish);
+    audioEl.currentTime = 0;
+    const playPromise = audioEl.play();
+    if(playPromise && typeof playPromise.catch === 'function'){
+      playPromise.catch(finish);
+    }
+  }
+
+  function updateMuteButtonUI(){
+    muteBtn.textContent = muted ? 'Muted' : 'Unmuted';
+    muteBtn.setAttribute('aria-pressed', muted ? 'true' : 'false');
+    muteBtn.classList.toggle('muted', muted);
+  }
+
+  muteBtn.addEventListener('click', () => {
+    muted = !muted;
+    updateMuteButtonUI();
+  });
 
   function announceScores(){
     const won = checkWin();
@@ -516,12 +581,9 @@
     p2timeoutBtn.disabled = blocked || p2TimeoutUsed;
   }
 
-  function finalizeSetWin(player){
+  function finalizeSetWin(player, onSettled){
     winner = player;
     refreshButtonStates();
-
-    winSound.currentTime = 0;
-    winSound.play().catch(() => {});
 
     setScores[currentSet - 1] = { p1: score1, p2: score2 };
     renderSetScores();
@@ -540,6 +602,10 @@
         softResetForNextSet(nextServePlayer);
       }, 4000);
     }
+
+    afterSound(winSound, () => {
+      if(onSettled) onSettled();
+    });
   }
 
   function clearSetWin(){
@@ -585,10 +651,10 @@
     updateWarnButtonUI(2);
   }
 
-  function applyWinCheck(){
+  function applyWinCheck(onSettled){
     const won = checkWin();
     if(won && winner === null){
-      finalizeSetWin(won);
+      finalizeSetWin(won, onSettled);
     } else if(!won && winner !== null){
       clearSetWin();
     }
@@ -636,12 +702,32 @@
     history.push({ type: 'score', player, amount, prevServe });
     serveState = (serveState + 1) % 4;
 
+    const wonNow = checkWin();
+
+    if(!muted){ serveStateEl.setAttribute('aria-live', 'off'); }
+
     renderScores();
     renderServe();
-    announceScores();
     updateUndoState();
     checkChangeEnds();
-    applyWinCheck();
+
+    const finishAnnouncements = () => {
+      if(!muted){
+        serveStateEl.setAttribute('aria-live', 'polite');
+        announceServe(changeEndsActive ? 'Change ends' : currentServeDisplayText());
+      }
+      if(!matchOver){
+        announceScores();
+      }
+    };
+
+    if(wonNow){
+      // A goal/foul that wins the set: only the win sound plays, not the goal/foul sound
+      applyWinCheck(finishAnnouncements);
+    } else {
+      const soundEl = amount === 2 ? goalSound : foulSound;
+      afterSound(soundEl, finishAnnouncements);
+    }
   }
 
   function updateWarnButtonUI(player){
@@ -674,8 +760,14 @@
     history.push({ type: 'penalty', player });
     if(player === 1){ score2 += 2; } else { score1 += 2; }
 
+    const wonNow = checkWin();
+    const willEndMatch = wonNow && (
+      (wonNow === 1 && setsWonP1 + 1 === 2) ||
+      (wonNow === 2 && setsWonP2 + 1 === 2)
+    );
+
     renderScores();
-    announceScores();
+    if(!willEndMatch){ announceScores(); }
     updateUndoState();
     checkChangeEnds();
     applyWinCheck();
@@ -916,6 +1008,7 @@
   updateUndoState();
   updateWarnButtonUI(1);
   updateWarnButtonUI(2);
+  updateMuteButtonUI();
   refreshButtonStates();
 </script>
 
