@@ -163,10 +163,10 @@
 
   /* ---------- CONTROL BUTTONS ---------- */
   .controls{
-    flex: 1.4 1 0;
+    flex: 1.8 1 0;
     display:grid;
     grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: 1.5fr 1.5fr 1fr;
+    grid-template-rows: 2fr 2fr 1fr;
     gap: 3px;
     background: var(--divider);
     min-height:0;
@@ -231,18 +231,18 @@
 
   /* ---------- BOTTOM BAR ---------- */
   .bottom-bar{
-    flex: 0 0 auto;
+    flex: 0 0 32px;
+    height: 32px;
     display:grid;
     grid-template-columns: 1fr 1fr;
     gap: 3px;
     background: var(--divider);
-    min-height: 64px;
   }
 
   .undo-btn{
     background: #1b1c1f;
     color: var(--amber);
-    font-size: clamp(16px, 3.4vh, 28px);
+    font-size: clamp(11px, 2.2vh, 16px);
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -256,7 +256,7 @@
   .reset-btn{
     background: #3a1414;
     color: #FF8A80;
-    font-size: clamp(16px, 3.4vh, 28px);
+    font-size: clamp(11px, 2.2vh, 16px);
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -269,7 +269,6 @@
   @media (orientation: landscape) and (max-height: 500px){
     .set-scores-bar{ min-height: 24px; }
     .serve-state-bar{ min-height: 30px; }
-    .bottom-bar{ min-height: 46px; }
   }
 
   .sr-only{
