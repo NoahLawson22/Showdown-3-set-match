@@ -329,6 +329,7 @@
 
   <div class="serve-state-bar" id="serveState" role="status" aria-live="polite">Player 1 &middot; 1st Serve</div>
   <button type="button" class="serve-state-bar interactive" id="changeEndsBtn" hidden></button>
+  <div class="serve-state-bar" id="countdownDisplay" hidden></div>
 
   <div class="controls">
     <button class="action-btn goal p1 wide" id="p1goal" aria-label="Player 1 Goal">
@@ -409,6 +410,7 @@
   const score2El = document.getElementById('score2');
   const serveStateEl = document.getElementById('serveState');
   const changeEndsBtn = document.getElementById('changeEndsBtn');
+  const countdownEl = document.getElementById('countdownDisplay');
   const undoBtn = document.getElementById('undoBtn');
   const announcer = document.getElementById('announcer');
   const winSound = document.getElementById('winSound');
@@ -571,8 +573,7 @@
       changeEndsState = 'idle';
       changeEndsOnComplete = null;
       changeEndsCompletionMessage = null;
-      serveStateEl.setAttribute('aria-live', 'polite');
-      setServeBarInteractive(false);
+      showServeBarMode('status');
     }
 
     if(winner === 1){ setsWonP1--; } else if(winner === 2){ setsWonP2--; }
@@ -631,14 +632,11 @@
     }
   }
 
-  function setServeBarInteractive(isInteractive){
-    if(isInteractive){
-      serveStateEl.hidden = true;
-      changeEndsBtn.hidden = false;
-    } else {
-      changeEndsBtn.hidden = true;
-      serveStateEl.hidden = false;
-    }
+  function showServeBarMode(mode){
+    // mode: 'status' | 'button' | 'countdown'
+    serveStateEl.hidden = (mode !== 'status');
+    changeEndsBtn.hidden = (mode !== 'button');
+    countdownEl.hidden = (mode !== 'countdown');
   }
 
   changeEndsBtn.addEventListener('click', () => {
@@ -651,30 +649,27 @@
     changeEndsCompletionMessage = completionMessage || 'Change ends over';
     serveStateEl.classList.remove('win');
     changeEndsBtn.textContent = 'Change ends, press to start 60-second countdown';
-    setServeBarInteractive(true);
+    showServeBarMode('button');
+    setTimeout(() => { changeEndsBtn.focus(); }, 0);
   }
 
   function startChangeEndsCountdown(){
     if(changeEndsState !== 'pending') return;
 
     changeEndsState = 'counting';
-    setServeBarInteractive(false);
-    changeEndsBtn.blur();
-
-    // Suppress auto-announcement of every tick; explicit announce() calls still work via the hidden live region
-    serveStateEl.setAttribute('aria-live', 'off');
+    showServeBarMode('countdown');
 
     let remaining = 60;
-    serveStateEl.textContent = 'Change ends: ' + remaining;
+    countdownEl.textContent = 'Change ends: ' + remaining;
 
     changeEndsIntervalId = setInterval(() => {
       remaining--;
 
       if(remaining > 15){
-        serveStateEl.textContent = 'Change ends: ' + remaining;
+        countdownEl.textContent = 'Change ends: ' + remaining;
       } else if(remaining > 0){
         const text = remaining + ' seconds';
-        serveStateEl.textContent = text;
+        countdownEl.textContent = text;
         if(remaining === 15){ announce(text); }
       }
 
@@ -684,19 +679,17 @@
         changeEndsState = 'idle';
         refreshButtonStates();
 
-        const completionMessage = changeEndsCompletionMessage;
         const onComplete = changeEndsOnComplete;
         const isMidSetTrigger = !onComplete;
         changeEndsOnComplete = null;
-        changeEndsCompletionMessage = null;
 
-        announce(completionMessage);
+        announce(changeEndsCompletionMessage);
+        changeEndsCompletionMessage = null;
 
         setTimeout(() => {
           if(onComplete){ onComplete(); }
+          showServeBarMode('status');
           renderServe();
-          serveStateEl.setAttribute('aria-live', 'polite');
-          announce(currentServeDisplayText());
 
           if(isMidSetTrigger){
             setTimeout(() => { announceScores(); }, 500);
@@ -717,8 +710,7 @@
       changeEndsState = 'idle';
       changeEndsOnComplete = null;
       changeEndsCompletionMessage = null;
-      serveStateEl.setAttribute('aria-live', 'polite');
-      setServeBarInteractive(false);
+      showServeBarMode('status');
       refreshButtonStates();
       renderServe();
     }
@@ -861,21 +853,20 @@
 
     const name = player === 1 ? player1Name : player2Name;
 
-    // Suppress auto-announcement of every tick; explicit announce() calls still work via the hidden live region
-    serveStateEl.setAttribute('aria-live', 'off');
     serveStateEl.classList.remove('win');
+    showServeBarMode('countdown');
 
     let remaining = 60;
-    serveStateEl.textContent = name + ' Time Out: ' + remaining;
+    countdownEl.textContent = name + ' Time Out: ' + remaining;
 
     timeoutIntervalId = setInterval(() => {
       remaining--;
 
       if(remaining > 15){
-        serveStateEl.textContent = name + ' Time Out: ' + remaining;
+        countdownEl.textContent = name + ' Time Out: ' + remaining;
       } else if(remaining > 0){
         const text = remaining + ' seconds';
-        serveStateEl.textContent = text;
+        countdownEl.textContent = text;
         if(remaining === 15){ announce(text); }
       }
 
@@ -888,9 +879,8 @@
         announce('Time out over');
 
         setTimeout(() => {
+          showServeBarMode('status');
           renderServe();
-          serveStateEl.setAttribute('aria-live', 'polite');
-          announce(currentServeDisplayText());
 
           setTimeout(() => { announceScores(); }, 500);
         }, 500);
@@ -976,7 +966,7 @@
         clearInterval(timeoutIntervalId);
         timeoutIntervalId = null;
         timeoutActive = false;
-        serveStateEl.setAttribute('aria-live', 'polite');
+        showServeBarMode('status');
       }
 
       if(last.player === 1){ p1TimeoutUsed = false; } else { p2TimeoutUsed = false; }
@@ -995,7 +985,6 @@
     timeoutActive = false;
     p1TimeoutUsed = false;
     p2TimeoutUsed = false;
-    serveStateEl.setAttribute('aria-live', 'polite');
 
     score1 = 0;
     score2 = 0;
@@ -1008,7 +997,7 @@
     changeEndsOnComplete = null;
     changeEndsCompletionMessage = null;
     changeEndsTriggered = false;
-    setServeBarInteractive(false);
+    showServeBarMode('status');
 
     currentSet = 1;
     setsWonP1 = 0;
