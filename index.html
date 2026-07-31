@@ -172,6 +172,10 @@
     outline-offset: -3px;
   }
 
+  .serve-state-bar[hidden]{
+    display: none;
+  }
+
   /* ---------- CONTROL BUTTONS ---------- */
   .controls{
     flex: 2.2 1 0;
@@ -324,6 +328,7 @@
   </div>
 
   <div class="serve-state-bar" id="serveState" role="status" aria-live="polite">Player 1 &middot; 1st Serve</div>
+  <button type="button" class="serve-state-bar interactive" id="changeEndsBtn" hidden></button>
 
   <div class="controls">
     <button class="action-btn goal p1 wide" id="p1goal" aria-label="Player 1 Goal">
@@ -403,6 +408,7 @@
   const score1El = document.getElementById('score1');
   const score2El = document.getElementById('score2');
   const serveStateEl = document.getElementById('serveState');
+  const changeEndsBtn = document.getElementById('changeEndsBtn');
   const undoBtn = document.getElementById('undoBtn');
   const announcer = document.getElementById('announcer');
   const winSound = document.getElementById('winSound');
@@ -625,39 +631,26 @@
     }
   }
 
-  function handleServeBarActivate(){
-    startChangeEndsCountdown();
-  }
-
-  function handleServeBarKeydown(e){
-    if(e.key === 'Enter' || e.key === ' '){
-      e.preventDefault();
-      startChangeEndsCountdown();
-    }
-  }
-
   function setServeBarInteractive(isInteractive){
     if(isInteractive){
-      serveStateEl.setAttribute('role', 'button');
-      serveStateEl.tabIndex = 0;
-      serveStateEl.classList.add('interactive');
-      serveStateEl.addEventListener('click', handleServeBarActivate);
-      serveStateEl.addEventListener('keydown', handleServeBarKeydown);
+      serveStateEl.hidden = true;
+      changeEndsBtn.hidden = false;
     } else {
-      serveStateEl.setAttribute('role', 'status');
-      serveStateEl.removeAttribute('tabindex');
-      serveStateEl.classList.remove('interactive');
-      serveStateEl.removeEventListener('click', handleServeBarActivate);
-      serveStateEl.removeEventListener('keydown', handleServeBarKeydown);
+      changeEndsBtn.hidden = true;
+      serveStateEl.hidden = false;
     }
   }
+
+  changeEndsBtn.addEventListener('click', () => {
+    startChangeEndsCountdown();
+  });
 
   function showChangeEndsPrompt(onComplete, completionMessage){
     changeEndsState = 'pending';
     changeEndsOnComplete = onComplete;
     changeEndsCompletionMessage = completionMessage || 'Change ends over';
     serveStateEl.classList.remove('win');
-    serveStateEl.textContent = 'Change ends, press to start 60-second countdown';
+    changeEndsBtn.textContent = 'Change ends, press to start 60-second countdown';
     setServeBarInteractive(true);
   }
 
@@ -666,7 +659,7 @@
 
     changeEndsState = 'counting';
     setServeBarInteractive(false);
-    serveStateEl.blur();
+    changeEndsBtn.blur();
 
     // Suppress auto-announcement of every tick; explicit announce() calls still work via the hidden live region
     serveStateEl.setAttribute('aria-live', 'off');
