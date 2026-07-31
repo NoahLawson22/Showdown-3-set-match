@@ -161,6 +161,17 @@
     color: var(--goal);
   }
 
+  .serve-state-bar.interactive{
+    cursor: pointer;
+  }
+  .serve-state-bar.interactive:hover{
+    filter: brightness(1.15);
+  }
+  .serve-state-bar.interactive:focus-visible{
+    outline: 3px solid var(--amber);
+    outline-offset: -3px;
+  }
+
   /* ---------- CONTROL BUTTONS ---------- */
   .controls{
     flex: 2.2 1 0;
@@ -382,10 +393,12 @@
   let matchOver = false;
   let setTransitionTimeoutId = null;
 
-  // "Change ends" message (set 3 only, once per match)
-  let changeEndsTriggered = false;
-  let changeEndsActive = false;
-  let changeEndsTimeoutId = null;
+  // "Change ends" (set 3 threshold, and between every set) — interactive countdown
+  let changeEndsTriggered = false; // once-per-match latch for the mid-set-3 threshold rule
+  let changeEndsState = 'idle'; // 'idle' | 'pending' | 'counting'
+  let changeEndsIntervalId = null;
+  let changeEndsOnComplete = null; // function to run once the 60s countdown finishes (e.g. move to next set)
+  let changeEndsCompletionMessage = null; // what to announce when the countdown finishes
 
   const score1El = document.getElementById('score1');
   const score2El = document.getElementById('score2');
@@ -478,7 +491,7 @@
   }
 
   function renderServe(){
-    if(!timeoutActive && !changeEndsActive){
+    if(!timeoutActive && changeEndsState === 'idle'){
       serveStateEl.textContent = currentServeDisplayText();
       serveStateEl.classList.toggle('win', matchOver || winner !== null);
     }
@@ -510,7 +523,7 @@
   }
 
   function refreshButtonStates(){
-    const blocked = winner !== null || timeoutActive;
+    const blocked = winner !== null || timeoutActive || changeEndsState !== 'idle';
     setActionButtonsDisabled(blocked);
     p1timeoutBtn.disabled = blocked || p1TimeoutUsed;
     p2timeoutBtn.disabled = blocked || p2TimeoutUsed;
@@ -534,10 +547,11 @@
     } else {
       renderServe();
       const nextServePlayer = (currentSet === 1) ? 2 : 1;
+      const nextSetNumber = currentSet + 1;
       if(setTransitionTimeoutId){ clearTimeout(setTransitionTimeoutId); }
       setTransitionTimeoutId = setTimeout(() => {
         setTransitionTimeoutId = null;
-        softResetForNextSet(nextServePlayer);
+        showChangeEndsPrompt(() => { softResetForNextSet(nextServePlayer); }, 'Set ' + nextSetNumber);
       }, 4000);
     }
   }
@@ -545,6 +559,15 @@
   function clearSetWin(){
     // Undo has reversed the point that had just finalized a set: unwind that finalization
     if(setTransitionTimeoutId){ clearTimeout(setTransitionTimeoutId); setTransitionTimeoutId = null; }
+
+    if(changeEndsState !== 'idle'){
+      if(changeEndsIntervalId){ clearInterval(changeEndsIntervalId); changeEndsIntervalId = null; }
+      changeEndsState = 'idle';
+      changeEndsOnComplete = null;
+      changeEndsCompletionMessage = null;
+      serveStateEl.setAttribute('aria-live', 'polite');
+      setServeBarInteractive(false);
+    }
 
     if(winner === 1){ setsWonP1--; } else if(winner === 2){ setsWonP2--; }
     setScores[currentSet - 1] = null;
@@ -579,7 +602,6 @@
 
     refreshButtonStates();
     renderScores();
-    renderServe();
     updateUndoState();
     updateWarnButtonUI(1);
     updateWarnButtonUI(2);
@@ -598,21 +620,97 @@
     if(currentSet !== 3 || changeEndsTriggered) return;
     if(score1 === 6 || score1 === 7 || score2 === 6 || score2 === 7){
       changeEndsTriggered = true;
-      triggerChangeEndsMessage();
+      showChangeEndsPrompt(null);
+      refreshButtonStates();
     }
   }
 
-  function triggerChangeEndsMessage(){
-    changeEndsActive = true;
-    serveStateEl.classList.remove('win');
-    serveStateEl.textContent = 'Change ends';
+  function handleServeBarActivate(){
+    startChangeEndsCountdown();
+  }
 
-    if(changeEndsTimeoutId){ clearTimeout(changeEndsTimeoutId); }
-    changeEndsTimeoutId = setTimeout(() => {
-      changeEndsTimeoutId = null;
-      changeEndsActive = false;
-      renderServe();
-    }, 4000);
+  function handleServeBarKeydown(e){
+    if(e.key === 'Enter' || e.key === ' '){
+      e.preventDefault();
+      startChangeEndsCountdown();
+    }
+  }
+
+  function setServeBarInteractive(isInteractive){
+    if(isInteractive){
+      serveStateEl.setAttribute('role', 'button');
+      serveStateEl.tabIndex = 0;
+      serveStateEl.classList.add('interactive');
+      serveStateEl.addEventListener('click', handleServeBarActivate);
+      serveStateEl.addEventListener('keydown', handleServeBarKeydown);
+    } else {
+      serveStateEl.setAttribute('role', 'status');
+      serveStateEl.removeAttribute('tabindex');
+      serveStateEl.classList.remove('interactive');
+      serveStateEl.removeEventListener('click', handleServeBarActivate);
+      serveStateEl.removeEventListener('keydown', handleServeBarKeydown);
+    }
+  }
+
+  function showChangeEndsPrompt(onComplete, completionMessage){
+    changeEndsState = 'pending';
+    changeEndsOnComplete = onComplete;
+    changeEndsCompletionMessage = completionMessage || 'Change ends over';
+    serveStateEl.classList.remove('win');
+    serveStateEl.textContent = 'Change ends, press to start 60-second countdown';
+    setServeBarInteractive(true);
+  }
+
+  function startChangeEndsCountdown(){
+    if(changeEndsState !== 'pending') return;
+
+    changeEndsState = 'counting';
+    setServeBarInteractive(false);
+    serveStateEl.blur();
+
+    // Suppress auto-announcement of every tick; explicit announce() calls still work via the hidden live region
+    serveStateEl.setAttribute('aria-live', 'off');
+
+    let remaining = 60;
+    serveStateEl.textContent = 'Change ends: ' + remaining;
+
+    changeEndsIntervalId = setInterval(() => {
+      remaining--;
+
+      if(remaining > 15){
+        serveStateEl.textContent = 'Change ends: ' + remaining;
+      } else if(remaining > 0){
+        const text = remaining + ' seconds';
+        serveStateEl.textContent = text;
+        if(remaining === 15){ announce(text); }
+      }
+
+      if(remaining <= 0){
+        clearInterval(changeEndsIntervalId);
+        changeEndsIntervalId = null;
+        changeEndsState = 'idle';
+        refreshButtonStates();
+
+        const completionMessage = changeEndsCompletionMessage;
+        const onComplete = changeEndsOnComplete;
+        const isMidSetTrigger = !onComplete;
+        changeEndsOnComplete = null;
+        changeEndsCompletionMessage = null;
+
+        announce(completionMessage);
+
+        setTimeout(() => {
+          if(onComplete){ onComplete(); }
+          renderServe();
+          serveStateEl.setAttribute('aria-live', 'polite');
+          announce(currentServeDisplayText());
+
+          if(isMidSetTrigger){
+            setTimeout(() => { announceScores(); }, 500);
+          }
+        }, 500);
+      }
+    }, 1000);
   }
 
   function rearmChangeEndsIfUndone(){
@@ -621,9 +719,14 @@
 
     changeEndsTriggered = false;
 
-    if(changeEndsTimeoutId){ clearTimeout(changeEndsTimeoutId); changeEndsTimeoutId = null; }
-    if(changeEndsActive){
-      changeEndsActive = false;
+    if(changeEndsState !== 'idle'){
+      if(changeEndsIntervalId){ clearInterval(changeEndsIntervalId); changeEndsIntervalId = null; }
+      changeEndsState = 'idle';
+      changeEndsOnComplete = null;
+      changeEndsCompletionMessage = null;
+      serveStateEl.setAttribute('aria-live', 'polite');
+      setServeBarInteractive(false);
+      refreshButtonStates();
       renderServe();
     }
   }
@@ -775,25 +878,29 @@
     timeoutIntervalId = setInterval(() => {
       remaining--;
 
-      if(remaining === 15){
-        serveStateEl.textContent = '15 seconds remaining';
-        announce('15 seconds remaining');
-      } else if(remaining > 15){
+      if(remaining > 15){
         serveStateEl.textContent = name + ' Time Out: ' + remaining;
       } else if(remaining > 0){
-        serveStateEl.textContent = remaining + ' seconds remaining';
+        const text = remaining + ' seconds';
+        serveStateEl.textContent = text;
+        if(remaining === 15){ announce(text); }
       }
 
       if(remaining <= 0){
         clearInterval(timeoutIntervalId);
         timeoutIntervalId = null;
         timeoutActive = false;
-
-        serveStateEl.setAttribute('aria-live', 'polite');
-        renderServe();
+        refreshButtonStates();
 
         announce('Time out over');
-        refreshButtonStates();
+
+        setTimeout(() => {
+          renderServe();
+          serveStateEl.setAttribute('aria-live', 'polite');
+          announce(currentServeDisplayText());
+
+          setTimeout(() => { announceScores(); }, 500);
+        }, 500);
       }
     }, 1000);
   }
@@ -891,7 +998,7 @@
   document.getElementById('resetBtn').addEventListener('click', () => {
     if(timeoutIntervalId){ clearInterval(timeoutIntervalId); timeoutIntervalId = null; }
     if(setTransitionTimeoutId){ clearTimeout(setTransitionTimeoutId); setTransitionTimeoutId = null; }
-    if(changeEndsTimeoutId){ clearTimeout(changeEndsTimeoutId); changeEndsTimeoutId = null; }
+    if(changeEndsIntervalId){ clearInterval(changeEndsIntervalId); changeEndsIntervalId = null; }
     timeoutActive = false;
     p1TimeoutUsed = false;
     p2TimeoutUsed = false;
@@ -904,8 +1011,11 @@
     winner = null;
     p1WarningIssued = false;
     p2WarningIssued = false;
-    changeEndsActive = false;
+    changeEndsState = 'idle';
+    changeEndsOnComplete = null;
+    changeEndsCompletionMessage = null;
     changeEndsTriggered = false;
+    setServeBarInteractive(false);
 
     currentSet = 1;
     setsWonP1 = 0;
