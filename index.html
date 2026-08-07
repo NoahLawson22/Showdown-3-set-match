@@ -31,11 +31,118 @@
     overflow: hidden;
   }
 
-  body{
+  .page{
     display:flex;
     flex-direction:column;
     height:100dvh;
     width:100vw;
+  }
+  .page[hidden]{
+    display:none;
+  }
+
+  /* ---------- LANDING PAGE ---------- */
+  .landing-top{
+    flex: 1;
+    display:flex;
+    flex-direction:column;
+    min-height: 0;
+  }
+
+  .landing-title-bar{
+    flex: 0 0 auto;
+    min-height: 44px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: #1b1c1f;
+    color: var(--amber);
+    font-weight: 700;
+    font-size: clamp(15px, 3.4vh, 26px);
+    letter-spacing: 0.04em;
+    text-align:center;
+    padding: 6px 10px;
+  }
+
+  .name-inputs{
+    flex: 1;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px;
+    min-height: 0;
+  }
+
+  .name-field{
+    display:flex;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .landing-name-input{
+    flex: 1;
+    width: 100%;
+    background: var(--panel);
+    border: none;
+    outline: none;
+    color: inherit;
+    font-weight: 900;
+    text-align: center;
+    letter-spacing: 0.03em;
+    font-size: clamp(18px, 6vh, 56px);
+    padding: 8px;
+    font-family: inherit;
+  }
+  .landing-name-input.p1{ color: var(--p1); }
+  .landing-name-input.p2{ color: var(--p2); }
+  .landing-name-input:focus{
+    outline: 4px solid var(--amber);
+    outline-offset: -4px;
+  }
+
+  .landing-bottom{
+    flex: 1;
+    display:flex;
+    flex-direction: column;
+    gap: 3px;
+    min-height: 0;
+  }
+
+  .swap-btn{
+    flex: 0 0 auto;
+    min-height: 56px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: #1b1c1f;
+    color: var(--amber);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: clamp(14px, 3vh, 22px);
+    padding: 8px;
+    text-align:center;
+    border:none;
+    cursor:pointer;
+  }
+  .swap-btn[disabled]{
+    color: #6b6552;
+    cursor: default;
+  }
+  .swap-btn[disabled]:active{ filter: none; }
+
+  .ok-btn{
+    flex: 1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: var(--panel);
+    color: var(--goal);
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: clamp(32px, 9vh, 90px);
+    border:none;
+    cursor:pointer;
   }
 
   /* ---------- SET SCORES BAR ---------- */
@@ -93,17 +200,6 @@
   .score-half.p1 .player-label{ color: var(--p1); }
   .score-half.p2 .player-label{ color: var(--p2); }
 
-  input.player-label{
-    background: transparent;
-    border: none;
-    border-bottom: 2px solid transparent;
-    outline: none;
-    width: 92%;
-    max-width: 260px;
-    padding: 2px 4px;
-    color: inherit;
-  }
-  input.player-label:focus{ border-bottom-color: var(--amber); }
 
   .score-num{
     font-family: 'Courier New', Consolas, monospace;
@@ -140,8 +236,8 @@
 
   /* ---------- SERVE STATE BOX ---------- */
   .serve-state-bar{
-    flex: 0 0 auto;
-    min-height: 42px;
+    flex: 1 1 0;
+    min-height: 0;
     display:flex;
     align-items:center;
     justify-content:center;
@@ -178,10 +274,10 @@
 
   /* ---------- CONTROL BUTTONS ---------- */
   .controls{
-    flex: 2.2 1 0;
+    flex: 0 0 50dvh;
     display:grid;
     grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: 2fr 2fr 1fr;
+    grid-template-rows: 1fr 1fr;
     gap: 3px;
     background: var(--divider);
     min-height:0;
@@ -233,15 +329,36 @@
   }
   .action-btn.goal .btn-action{ color: var(--goal); }
   .action-btn.foul .btn-action{ color: var(--foul); }
-  .action-btn.warn .btn-action{ color: var(--warn); }
-  .action-btn.warn.triggered .btn-action{ color: var(--penalty); }
-  .action-btn.timeout .btn-action{ color: var(--amber); }
 
-  .action-btn.compact .btn-player{
-    font-size: clamp(8px, 1.6vh, 13px);
+  /* ---------- WARNING / PENALTY / TIMEOUT ROW ---------- */
+  .warn-penalty-row{
+    flex: 0 0 32px;
+    height: 32px;
+    display:grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 3px;
+    background: var(--divider);
   }
-  .action-btn.compact .btn-action{
-    font-size: clamp(11px, 2.6vh, 20px);
+  .warn-penalty-row button{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: var(--panel);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    font-size: clamp(7px, 1.7vh, 11px);
+    padding: 2px;
+    text-align:center;
+    line-height: 1.1;
+  }
+  .warn-penalty-row button.p1{ color: var(--p1); }
+  .warn-penalty-row button.p2{ color: var(--p2); }
+  .warn-penalty-row button[disabled]{ opacity: 0.35; cursor: default; }
+  .warn-penalty-row button[disabled]:active{ filter: none; }
+  .warn-penalty-row button.warn-toggle.active{
+    background: var(--warn);
+    color: #000;
   }
 
   /* ---------- BOTTOM BAR ---------- */
@@ -249,7 +366,7 @@
     flex: 0 0 32px;
     height: 32px;
     display:grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 3px;
     background: var(--divider);
   }
@@ -277,6 +394,15 @@
     letter-spacing: 0.06em;
   }
 
+  .back-to-names-btn{
+    background: #1b1c1f;
+    color: var(--amber);
+    font-size: clamp(9px, 1.8vh, 14px);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
   @media (max-width: 480px){
     .player-label{ font-size: clamp(12px, 2.6vh, 18px); }
   }
@@ -301,81 +427,156 @@
 </head>
 <body>
 
-  <div class="set-scores-bar">
-    <div class="set-score" id="setScore1">Set 1: ---</div>
-    <div class="set-score" id="setScore2">Set 2: ---</div>
-    <div class="set-score" id="setScore3">Set 3: ---</div>
-  </div>
-
-  <div class="scoreboard">
-    <div class="center-divider"></div>
-    <div class="score-half p1">
-      <input type="text" class="player-label" id="p1NameInput" value="Player 1" maxlength="24">
-      <div class="score-num" id="score1">0</div>
-      <div class="serve-dots" id="dots1">
-        <div class="serve-dot" id="dot1a"></div>
-        <div class="serve-dot" id="dot1b"></div>
+  <div class="page" id="landingPage">
+    <div class="landing-top">
+      <div class="landing-title-bar" role="text">Enter player names:</div>
+      <div class="name-inputs">
+        <div class="name-field">
+          <input type="text" class="landing-name-input p1" id="p1LandingNameInput" value="Player 1" maxlength="24">
+        </div>
+        <div class="name-field">
+          <input type="text" class="landing-name-input p2" id="p2LandingNameInput" value="Player 2" maxlength="24">
+        </div>
       </div>
     </div>
-    <div class="score-half p2">
-      <input type="text" class="player-label" id="p2NameInput" value="Player 2" maxlength="24">
-      <div class="score-num" id="score2">0</div>
-      <div class="serve-dots" id="dots2">
-        <div class="serve-dot" id="dot2a"></div>
-        <div class="serve-dot" id="dot2b"></div>
-      </div>
+    <div class="landing-bottom">
+      <button class="swap-btn" id="swapNamesBtn">Swap player names</button>
+      <button class="ok-btn" id="okBtn">OK</button>
     </div>
   </div>
 
-  <div class="serve-state-bar" id="serveState" role="status" aria-live="polite">Player 1 &middot; 1st Serve</div>
-  <button type="button" class="serve-state-bar interactive" id="changeEndsBtn" hidden></button>
-  <div class="serve-state-bar" id="countdownDisplay" hidden></div>
+  <div class="page" id="scoreboardPage" hidden>
 
-  <div class="controls">
-    <button class="action-btn goal p1 wide" id="p1goal" aria-label="Player 1 Goal">
-      <span class="btn-player" id="p1goalLabel">Player 1</span>
-      <span class="btn-action">GOAL</span>
-    </button>
-    <button class="action-btn goal p2 wide" id="p2goal" aria-label="Player 2 Goal">
-      <span class="btn-player" id="p2goalLabel">Player 2</span>
-      <span class="btn-action">GOAL</span>
-    </button>
-    <button class="action-btn foul p1 wide" id="p1foul" aria-label="Player 1 Foul">
-      <span class="btn-player" id="p1foulLabel">Player 1</span>
-      <span class="btn-action">FOUL</span>
-    </button>
-    <button class="action-btn foul p2 wide" id="p2foul" aria-label="Player 2 Foul">
-      <span class="btn-player" id="p2foulLabel">Player 2</span>
-      <span class="btn-action">FOUL</span>
-    </button>
-    <button class="action-btn warn p1 compact" id="p1warn" aria-label="Player 1 Warning">
-      <span class="btn-player" id="p1warnLabel">Player 1</span>
-      <span class="btn-action" id="p1warnAction">WARNING</span>
-    </button>
-    <button class="action-btn timeout p1 compact" id="p1timeout" aria-label="Player 1 Time Out">
-      <span class="btn-player" id="p1timeoutLabel">Player 1</span>
-      <span class="btn-action">TIME OUT</span>
-    </button>
-    <button class="action-btn timeout p2 compact" id="p2timeout" aria-label="Player 2 Time Out">
-      <span class="btn-player" id="p2timeoutLabel">Player 2</span>
-      <span class="btn-action">TIME OUT</span>
-    </button>
-    <button class="action-btn warn p2 compact" id="p2warn" aria-label="Player 2 Warning">
-      <span class="btn-player" id="p2warnLabel">Player 2</span>
-      <span class="btn-action" id="p2warnAction">WARNING</span>
-    </button>
+    <div class="set-scores-bar">
+      <div class="set-score" id="setScore1">Set 1: ---</div>
+      <div class="set-score" id="setScore2">Set 2: ---</div>
+      <div class="set-score" id="setScore3">Set 3: ---</div>
+    </div>
+
+    <div class="scoreboard">
+      <div class="center-divider"></div>
+      <div class="score-half p1">
+        <div class="player-label" id="p1NameDisplay">Player 1</div>
+        <div class="score-num" id="score1" aria-hidden="true">0</div>
+        <div class="serve-dots" id="dots1">
+          <div class="serve-dot" id="dot1a"></div>
+          <div class="serve-dot" id="dot1b"></div>
+        </div>
+      </div>
+      <div class="score-half p2">
+        <div class="player-label" id="p2NameDisplay">Player 2</div>
+        <div class="score-num" id="score2" aria-hidden="true">0</div>
+        <div class="serve-dots" id="dots2">
+          <div class="serve-dot" id="dot2a"></div>
+          <div class="serve-dot" id="dot2b"></div>
+        </div>
+      </div>
+      <div class="sr-only" id="scoreBarSr" tabindex="0" role="text">0. 0.</div>
+    </div>
+
+    <div class="serve-state-bar" id="serveState" role="status" aria-live="polite">Player 1 &middot; 1st Serve</div>
+    <button type="button" class="serve-state-bar interactive" id="changeEndsBtn" hidden></button>
+    <div class="serve-state-bar" id="countdownDisplay" hidden></div>
+
+    <div class="controls">
+      <button class="action-btn goal p1 wide" id="p1goal" aria-label="Player 1 Goal">
+        <span class="btn-player" id="p1goalLabel">Player 1</span>
+        <span class="btn-action">GOAL</span>
+      </button>
+      <button class="action-btn goal p2 wide" id="p2goal" aria-label="Player 2 Goal">
+        <span class="btn-player" id="p2goalLabel">Player 2</span>
+        <span class="btn-action">GOAL</span>
+      </button>
+      <button class="action-btn foul p1 wide" id="p1foul" aria-label="Player 1 Foul">
+        <span class="btn-player" id="p1foulLabel">Player 1</span>
+        <span class="btn-action">FOUL</span>
+      </button>
+      <button class="action-btn foul p2 wide" id="p2foul" aria-label="Player 2 Foul">
+        <span class="btn-player" id="p2foulLabel">Player 2</span>
+        <span class="btn-action">FOUL</span>
+      </button>
+    </div>
+
+    <div class="warn-penalty-row">
+      <button class="p1 warn-toggle" id="p1WarnBtn" aria-pressed="false">Warning Player 1</button>
+      <button class="p1" id="p1PenaltyBtn">Penalty Player 1</button>
+      <button class="p1" id="p1timeout">Timeout Player 1</button>
+      <button class="p2 warn-toggle" id="p2WarnBtn" aria-pressed="false">Warning Player 2</button>
+      <button class="p2" id="p2PenaltyBtn">Penalty Player 2</button>
+      <button class="p2" id="p2timeout">Timeout Player 2</button>
+    </div>
+
+    <div class="bottom-bar">
+      <button class="undo-btn" id="undoBtn" disabled>Undo</button>
+      <button class="reset-btn" id="resetBtn">Reset</button>
+      <button class="back-to-names-btn" id="backToNamesBtn">Back to names</button>
+    </div>
+
+    <div id="announcer" class="sr-only" aria-live="polite" role="status"></div>
+
+    <audio id="winSound" src="win.mp3" preload="auto"></audio>
+
   </div>
-
-  <div class="bottom-bar">
-    <button class="undo-btn" id="undoBtn" disabled>Undo</button>
-    <button class="reset-btn" id="resetBtn">Reset</button>
-  </div>
-
-  <div id="announcer" class="sr-only" aria-live="polite" role="status"></div>
-
-  <audio id="winSound" src="win.mp3" preload="auto"></audio>
 
 <script>
+  // ============================================================
+  // LANDING PAGE
+  // ============================================================
+  const landingPage = document.getElementById('landingPage');
+  const scoreboardPage = document.getElementById('scoreboardPage');
+  const p1LandingNameInput = document.getElementById('p1LandingNameInput');
+  const p2LandingNameInput = document.getElementById('p2LandingNameInput');
+  const okBtn = document.getElementById('okBtn');
+  const swapNamesBtn = document.getElementById('swapNamesBtn');
+
+  function updateSwapButtonState(){
+    swapNamesBtn.disabled = (p1LandingNameInput.value === 'Player 1' || p2LandingNameInput.value === 'Player 2');
+  }
+
+  p1LandingNameInput.addEventListener('focus', () => { p1LandingNameInput.value = ''; updateSwapButtonState(); });
+  p2LandingNameInput.addEventListener('focus', () => { p2LandingNameInput.value = ''; updateSwapButtonState(); });
+
+  p1LandingNameInput.addEventListener('input', updateSwapButtonState);
+  p2LandingNameInput.addEventListener('input', updateSwapButtonState);
+
+  p1LandingNameInput.addEventListener('blur', () => {
+    if(p1LandingNameInput.value.trim() === ''){ p1LandingNameInput.value = 'Player 1'; }
+    updateSwapButtonState();
+  });
+  p2LandingNameInput.addEventListener('blur', () => {
+    if(p2LandingNameInput.value.trim() === ''){ p2LandingNameInput.value = 'Player 2'; }
+    updateSwapButtonState();
+  });
+
+  p1LandingNameInput.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter'){ e.preventDefault(); p1LandingNameInput.blur(); }
+  });
+  p2LandingNameInput.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter'){ e.preventDefault(); p2LandingNameInput.blur(); }
+  });
+
+  swapNamesBtn.addEventListener('click', () => {
+    swapNamesBtn.blur();
+    const temp = p1LandingNameInput.value;
+    p1LandingNameInput.value = p2LandingNameInput.value;
+    p2LandingNameInput.value = temp;
+    updateSwapButtonState();
+  });
+
+  okBtn.addEventListener('click', () => {
+    okBtn.blur();
+
+    setPlayerNames(p1LandingNameInput.value, p2LandingNameInput.value);
+
+    landingPage.hidden = true;
+    scoreboardPage.hidden = false;
+  });
+
+  updateSwapButtonState();
+
+  // ============================================================
+  // SCOREBOARD PAGE (unchanged from the match-tracker version)
+  // ============================================================
   let score1 = 0;
   let score2 = 0;
   // serve state: 0 = P1 1st, 1 = P1 2nd, 2 = P2 1st, 3 = P2 2nd
@@ -408,33 +609,31 @@
 
   const score1El = document.getElementById('score1');
   const score2El = document.getElementById('score2');
+  const scoreBarSr = document.getElementById('scoreBarSr');
   const serveStateEl = document.getElementById('serveState');
   const changeEndsBtn = document.getElementById('changeEndsBtn');
   const countdownEl = document.getElementById('countdownDisplay');
   const undoBtn = document.getElementById('undoBtn');
+  const backToNamesBtn = document.getElementById('backToNamesBtn');
   const announcer = document.getElementById('announcer');
   const winSound = document.getElementById('winSound');
-  const p1NameInput = document.getElementById('p1NameInput');
-  const p2NameInput = document.getElementById('p2NameInput');
+  const p1NameDisplay = document.getElementById('p1NameDisplay');
+  const p2NameDisplay = document.getElementById('p2NameDisplay');
   const p1goalBtn = document.getElementById('p1goal');
   const p2goalBtn = document.getElementById('p2goal');
   const p1foulBtn = document.getElementById('p1foul');
   const p2foulBtn = document.getElementById('p2foul');
-  const p1warnBtn = document.getElementById('p1warn');
-  const p2warnBtn = document.getElementById('p2warn');
+  const p1WarnBtn = document.getElementById('p1WarnBtn');
+  const p2WarnBtn = document.getElementById('p2WarnBtn');
+  const p1PenaltyBtn = document.getElementById('p1PenaltyBtn');
+  const p2PenaltyBtn = document.getElementById('p2PenaltyBtn');
   const p1timeoutBtn = document.getElementById('p1timeout');
   const p2timeoutBtn = document.getElementById('p2timeout');
   const p1goalLabel = document.getElementById('p1goalLabel');
   const p2goalLabel = document.getElementById('p2goalLabel');
   const p1foulLabel = document.getElementById('p1foulLabel');
   const p2foulLabel = document.getElementById('p2foulLabel');
-  const p1warnLabel = document.getElementById('p1warnLabel');
-  const p2warnLabel = document.getElementById('p2warnLabel');
-  const p1warnAction = document.getElementById('p1warnAction');
-  const p2warnAction = document.getElementById('p2warnAction');
-  const p1timeoutLabel = document.getElementById('p1timeoutLabel');
-  const p2timeoutLabel = document.getElementById('p2timeoutLabel');
-  const actionButtons = [p1goalBtn, p2goalBtn, p1foulBtn, p2foulBtn, p1warnBtn, p2warnBtn];
+  const actionButtons = [p1goalBtn, p2goalBtn, p1foulBtn, p2foulBtn, p1WarnBtn, p2WarnBtn, p1PenaltyBtn, p2PenaltyBtn];
   const setScoreEls = [
     document.getElementById('setScore1'),
     document.getElementById('setScore2'),
@@ -477,6 +676,7 @@
   function renderScores(){
     score1El.textContent = score1;
     score2El.textContent = score2;
+    scoreBarSr.textContent = score1 + '. ' + score2 + '.';
   }
 
   function renderSetScores(){
@@ -540,9 +740,6 @@
   function finalizeSetWin(player){
     winner = player;
     refreshButtonStates();
-
-    winSound.currentTime = 0;
-    winSound.play().catch(() => {});
 
     setScores[currentSet - 1] = { p1: score1, p2: score2 };
     renderSetScores();
@@ -610,8 +807,8 @@
     refreshButtonStates();
     renderScores();
     updateUndoState();
-    updateWarnButtonUI(1);
-    updateWarnButtonUI(2);
+    updateWarnIndicatorUI(1);
+    updateWarnIndicatorUI(2);
   }
 
   function applyWinCheck(){
@@ -630,13 +827,6 @@
       showChangeEndsPrompt(null);
       refreshButtonStates();
     }
-  }
-
-  function showServeBarMode(mode){
-    // mode: 'status' | 'button' | 'countdown'
-    serveStateEl.hidden = (mode !== 'status');
-    changeEndsBtn.hidden = (mode !== 'button');
-    countdownEl.hidden = (mode !== 'countdown');
   }
 
   changeEndsBtn.addEventListener('click', () => {
@@ -716,6 +906,13 @@
     }
   }
 
+  function showServeBarMode(mode){
+    // mode: 'status' | 'button' | 'countdown'
+    serveStateEl.hidden = (mode !== 'status');
+    changeEndsBtn.hidden = (mode !== 'button');
+    countdownEl.hidden = (mode !== 'countdown');
+  }
+
   function addPoints(player, amount){
     if(winner !== null) return;
 
@@ -739,35 +936,28 @@
     applyWinCheck();
   }
 
-  function updateWarnButtonUI(player){
+  function updateWarnIndicatorUI(player){
     const issued = player === 1 ? p1WarningIssued : p2WarningIssued;
-    const btn = player === 1 ? p1warnBtn : p2warnBtn;
-    const nameSpan = player === 1 ? p1warnLabel : p2warnLabel;
-    const actionSpan = player === 1 ? p1warnAction : p2warnAction;
-    const name = player === 1 ? player1Name : player2Name;
-
-    nameSpan.textContent = name;
-    actionSpan.textContent = issued ? 'PENALTY' : 'WARNING';
-    btn.classList.toggle('triggered', issued);
-    btn.setAttribute('aria-label', name + (issued ? ' Penalty' : ' Warning'));
+    const btn = player === 1 ? p1WarnBtn : p2WarnBtn;
+    btn.classList.toggle('active', issued);
+    btn.setAttribute('aria-pressed', issued ? 'true' : 'false');
   }
 
-  function handleWarning(player){
+  function toggleWarningIndicator(player){
     if(winner !== null) return;
 
-    const issued = player === 1 ? p1WarningIssued : p2WarningIssued;
+    if(player === 1){ p1WarningIssued = !p1WarningIssued; } else { p2WarningIssued = !p2WarningIssued; }
+    history.push({ type: 'warning', player });
+    updateWarnIndicatorUI(player);
+    updateUndoState();
+  }
 
-    if(!issued){
-      if(player === 1){ p1WarningIssued = true; } else { p2WarningIssued = true; }
-      history.push({ type: 'warning', player });
-      updateWarnButtonUI(player);
-      updateUndoState();
-      return;
-    }
+  function handlePenaltyPress(penalizingPlayer){
+    if(winner !== null) return;
 
-    // Warning already issued: add 2 points to the OTHER player, serve state untouched
-    history.push({ type: 'penalty', player });
-    if(player === 1){ score2 += 2; } else { score1 += 2; }
+    const opponent = penalizingPlayer === 1 ? 2 : 1;
+    if(opponent === 1){ score1 += 2; } else { score2 += 2; }
+    history.push({ type: 'penalty', player: penalizingPlayer });
 
     const wonNow = checkWin();
     const willEndMatch = wonNow && (
@@ -783,6 +973,9 @@
   }
 
   function refreshNameDependentUI(){
+    p1NameDisplay.textContent = player1Name;
+    p2NameDisplay.textContent = player2Name;
+
     p1goalLabel.textContent = player1Name;
     p1foulLabel.textContent = player1Name;
     p2goalLabel.textContent = player2Name;
@@ -793,52 +986,35 @@
     p2goalBtn.setAttribute('aria-label', player2Name + ' Goal');
     p2foulBtn.setAttribute('aria-label', player2Name + ' Foul');
 
-    updateWarnButtonUI(1);
-    updateWarnButtonUI(2);
+    p1WarnBtn.textContent = 'Warning ' + player1Name;
+    p2WarnBtn.textContent = 'Warning ' + player2Name;
+    p1PenaltyBtn.textContent = 'Penalty ' + player1Name;
+    p2PenaltyBtn.textContent = 'Penalty ' + player2Name;
+    updateWarnIndicatorUI(1);
+    updateWarnIndicatorUI(2);
 
-    p1timeoutLabel.textContent = player1Name;
-    p2timeoutLabel.textContent = player2Name;
-    p1timeoutBtn.setAttribute('aria-label', player1Name + ' Time Out');
-    p2timeoutBtn.setAttribute('aria-label', player2Name + ' Time Out');
+    p1timeoutBtn.textContent = 'Timeout ' + player1Name;
+    p2timeoutBtn.textContent = 'Timeout ' + player2Name;
 
     renderServe();
   }
 
-  function updatePlayerNames(){
-    player1Name = p1NameInput.value.trim() || 'Player 1';
-    player2Name = p2NameInput.value.trim() || 'Player 2';
+  function setPlayerNames(name1, name2){
+    player1Name = name1.trim() || 'Player 1';
+    player2Name = name2.trim() || 'Player 2';
     refreshNameDependentUI();
   }
-
-  p1NameInput.addEventListener('input', updatePlayerNames);
-  p2NameInput.addEventListener('input', updatePlayerNames);
-
-  p1NameInput.addEventListener('focus', () => { p1NameInput.value = ''; });
-  p2NameInput.addEventListener('focus', () => { p2NameInput.value = ''; });
-
-  p1NameInput.addEventListener('blur', () => {
-    if(p1NameInput.value.trim() === ''){ p1NameInput.value = 'Player 1'; }
-    updatePlayerNames();
-  });
-  p2NameInput.addEventListener('blur', () => {
-    if(p2NameInput.value.trim() === ''){ p2NameInput.value = 'Player 2'; }
-    updatePlayerNames();
-  });
-
-  p1NameInput.addEventListener('keydown', (e) => {
-    if(e.key === 'Enter'){ e.preventDefault(); p1NameInput.blur(); }
-  });
-  p2NameInput.addEventListener('keydown', (e) => {
-    if(e.key === 'Enter'){ e.preventDefault(); p2NameInput.blur(); }
-  });
 
   document.getElementById('p1goal').addEventListener('click', () => addPoints(1, 2));
   document.getElementById('p2goal').addEventListener('click', () => addPoints(2, 2));
   document.getElementById('p1foul').addEventListener('click', () => addPoints(2, 1));
   document.getElementById('p2foul').addEventListener('click', () => addPoints(1, 1));
 
-  p1warnBtn.addEventListener('click', () => handleWarning(1));
-  p2warnBtn.addEventListener('click', () => handleWarning(2));
+  p1WarnBtn.addEventListener('click', () => toggleWarningIndicator(1));
+  p2WarnBtn.addEventListener('click', () => toggleWarningIndicator(2));
+
+  p1PenaltyBtn.addEventListener('click', () => handlePenaltyPress(1));
+  p2PenaltyBtn.addEventListener('click', () => handlePenaltyPress(2));
 
   function startTimeout(player){
     if(winner !== null || timeoutActive) return;
@@ -920,8 +1096,8 @@
       renderScores();
       renderServe();
       updateUndoState();
-      updateWarnButtonUI(1);
-      updateWarnButtonUI(2);
+      updateWarnIndicatorUI(1);
+      updateWarnIndicatorUI(2);
       return;
     }
 
@@ -934,8 +1110,8 @@
       renderServe();
       announceScores();
       updateUndoState();
-      updateWarnButtonUI(1);
-      updateWarnButtonUI(2);
+      updateWarnIndicatorUI(1);
+      updateWarnIndicatorUI(2);
       rearmChangeEndsIfUndone();
       applyWinCheck();
 
@@ -944,7 +1120,7 @@
       refreshButtonStates();
       renderScores();
       renderServe();
-      updateWarnButtonUI(last.player);
+      updateWarnIndicatorUI(last.player);
       updateUndoState();
 
     } else if(last.type === 'penalty'){
@@ -955,8 +1131,8 @@
       renderScores();
       renderServe();
       announceScores();
-      updateWarnButtonUI(1);
-      updateWarnButtonUI(2);
+      updateWarnIndicatorUI(1);
+      updateWarnIndicatorUI(2);
       updateUndoState();
       rearmChangeEndsIfUndone();
       applyWinCheck();
@@ -1010,17 +1186,37 @@
     renderServe();
     renderSetScores();
     updateUndoState();
-    updateWarnButtonUI(1);
-    updateWarnButtonUI(2);
+    updateWarnIndicatorUI(1);
+    updateWarnIndicatorUI(2);
     announce('Reset. ' + getServeLabels()[serveState] + '. 0. 0.');
+  });
+
+  backToNamesBtn.addEventListener('click', () => {
+    backToNamesBtn.blur();
+
+    if(timeoutIntervalId){ clearInterval(timeoutIntervalId); timeoutIntervalId = null; }
+    if(setTransitionTimeoutId){ clearTimeout(setTransitionTimeoutId); setTransitionTimeoutId = null; }
+    if(changeEndsIntervalId){ clearInterval(changeEndsIntervalId); changeEndsIntervalId = null; }
+    timeoutActive = false;
+    changeEndsState = 'idle';
+    changeEndsOnComplete = null;
+    changeEndsCompletionMessage = null;
+    showServeBarMode('status');
+
+    p1LandingNameInput.value = player1Name;
+    p2LandingNameInput.value = player2Name;
+    updateSwapButtonState();
+
+    scoreboardPage.hidden = true;
+    landingPage.hidden = false;
   });
 
   renderScores();
   renderServe();
   renderSetScores();
   updateUndoState();
-  updateWarnButtonUI(1);
-  updateWarnButtonUI(2);
+  updateWarnIndicatorUI(1);
+  updateWarnIndicatorUI(2);
   refreshButtonStates();
 </script>
 
