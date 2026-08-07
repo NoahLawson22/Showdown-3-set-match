@@ -175,6 +175,10 @@
     position:relative;
     min-height: 0;
   }
+  .scoreboard:focus-visible{
+    outline: 4px solid var(--amber);
+    outline-offset: -4px;
+  }
 
   .score-half{
     flex:1;
@@ -189,16 +193,6 @@
 
   .score-half.p1 .score-num{ color: var(--p1); text-shadow: 0 0 18px rgba(57,224,255,0.45); }
   .score-half.p2 .score-num{ color: var(--p2); text-shadow: 0 0 18px rgba(255,77,109,0.45); }
-
-  .player-label{
-    font-size: clamp(14px, 3.2vh, 22px);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    font-weight: 700;
-    opacity: 0.85;
-  }
-  .score-half.p1 .player-label{ color: var(--p1); }
-  .score-half.p2 .player-label{ color: var(--p2); }
 
 
   .score-num{
@@ -403,10 +397,6 @@
     letter-spacing: 0.04em;
   }
 
-  @media (max-width: 480px){
-    .player-label{ font-size: clamp(12px, 2.6vh, 18px); }
-  }
-
   @media (orientation: landscape) and (max-height: 500px){
     .set-scores-bar{ min-height: 24px; }
     .serve-state-bar{ min-height: 30px; }
@@ -453,10 +443,9 @@
       <div class="set-score" id="setScore3">Set 3: ---</div>
     </div>
 
-    <div class="scoreboard">
+    <div class="scoreboard" id="scoreboardEl" tabindex="0" aria-label="0. 0.">
       <div class="center-divider"></div>
       <div class="score-half p1">
-        <div class="player-label" id="p1NameDisplay">Player 1</div>
         <div class="score-num" id="score1" aria-hidden="true">0</div>
         <div class="serve-dots" id="dots1">
           <div class="serve-dot" id="dot1a"></div>
@@ -464,14 +453,12 @@
         </div>
       </div>
       <div class="score-half p2">
-        <div class="player-label" id="p2NameDisplay">Player 2</div>
         <div class="score-num" id="score2" aria-hidden="true">0</div>
         <div class="serve-dots" id="dots2">
           <div class="serve-dot" id="dot2a"></div>
           <div class="serve-dot" id="dot2b"></div>
         </div>
       </div>
-      <div class="sr-only" id="scoreBarSr" tabindex="0" role="text">0. 0.</div>
     </div>
 
     <div class="serve-state-bar" id="serveState" role="status" aria-live="polite">Player 1 &middot; 1st Serve</div>
@@ -609,7 +596,7 @@
 
   const score1El = document.getElementById('score1');
   const score2El = document.getElementById('score2');
-  const scoreBarSr = document.getElementById('scoreBarSr');
+  const scoreboardEl = document.getElementById('scoreboardEl');
   const serveStateEl = document.getElementById('serveState');
   const changeEndsBtn = document.getElementById('changeEndsBtn');
   const countdownEl = document.getElementById('countdownDisplay');
@@ -617,8 +604,6 @@
   const backToNamesBtn = document.getElementById('backToNamesBtn');
   const announcer = document.getElementById('announcer');
   const winSound = document.getElementById('winSound');
-  const p1NameDisplay = document.getElementById('p1NameDisplay');
-  const p2NameDisplay = document.getElementById('p2NameDisplay');
   const p1goalBtn = document.getElementById('p1goal');
   const p2goalBtn = document.getElementById('p2goal');
   const p1foulBtn = document.getElementById('p1foul');
@@ -676,7 +661,7 @@
   function renderScores(){
     score1El.textContent = score1;
     score2El.textContent = score2;
-    scoreBarSr.textContent = score1 + '. ' + score2 + '.';
+    scoreboardEl.setAttribute('aria-label', score1 + '. ' + score2 + '.');
   }
 
   function renderSetScores(){
@@ -973,9 +958,6 @@
   }
 
   function refreshNameDependentUI(){
-    p1NameDisplay.textContent = player1Name;
-    p2NameDisplay.textContent = player2Name;
-
     p1goalLabel.textContent = player1Name;
     p1foulLabel.textContent = player1Name;
     p2goalLabel.textContent = player2Name;
