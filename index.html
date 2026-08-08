@@ -558,6 +558,8 @@
   okBtn.addEventListener('click', () => {
     okBtn.blur();
 
+    if(!pointsScoredSinceReset){ matchStartTime = new Date(); }
+
     setPlayerNames(p1LandingNameInput.value, p2LandingNameInput.value);
 
     landingPage.hidden = true;
@@ -584,6 +586,9 @@
   let timeoutActive = false;
   let timeoutIntervalId = null;
   let activeCountdownFinisher = null; // whichever countdown's "finish now" function is currently running
+  let matchStartTime = null; // set once, the first time OK is pressed
+  let matchEndTime = null; // set when the match-winner message is displayed
+  let pointsScoredSinceReset = false;
 
   // Match / set state
   let currentSet = 1; // 1, 2, or 3
@@ -670,17 +675,101 @@
     }
   }
 
+  function serveLabelForState(state){
+    return getServeLabels()[state];
+  }
+
+  function formatMatchBeganText(){
+    if(!matchStartTime) return 'Unknown';
+    const dateStr = matchStartTime.toLocaleDateString();
+    const timeStr = matchStartTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return dateStr + ' ' + timeStr;
+  }
+
+  function formatMatchLengthText(){
+    if(!matchStartTime || !matchEndTime) return 'Unknown';
+    const totalSeconds = Math.max(0, Math.round((matchEndTime - matchStartTime) / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return minutes + ' minutes ' + seconds + ' seconds';
+  }
+
+  function computeMatchStats(){
+    const stats = {
+      1: { total: 0, goals: 0, fouls: 0, penalties: 0 },
+      2: { total: 0, goals: 0, fouls: 0, penalties: 0 }
+    };
+
+    history.forEach(entry => {
+      if(entry.type === 'score'){
+        const p = entry.player;
+        if(entry.amount === 2){ stats[p].goals += entry.amount; }
+        else if(entry.amount === 1){ stats[p].fouls += entry.amount; }
+        stats[p].total += entry.amount;
+      } else if(entry.type === 'penalty'){
+        const opponent = entry.player === 1 ? 2 : 1;
+        stats[opponent].penalties += 2;
+        stats[opponent].total += 2;
+      }
+    });
+
+    return stats;
+  }
+
+  function buildSetDetailsSections(){
+    const sections = [];
+    let currentSetNumber = 1;
+    let runningScore1 = 0;
+    let runningScore2 = 0;
+    let lines = [];
+
+    history.forEach(entry => {
+      if(entry.type === 'setTransition'){
+        sections.push({ setNumber: currentSetNumber, lines: lines });
+        currentSetNumber = entry.completedSet + 1;
+        runningScore1 = 0;
+        runningScore2 = 0;
+        lines = [];
+        return;
+      }
+
+      if(entry.type === 'score'){
+        if(entry.player === 1){ runningScore1 += entry.amount; } else { runningScore2 += entry.amount; }
+        const source = entry.amount === 2 ? 'Goal' : 'Foul';
+        const receivingName = entry.player === 1 ? player1Name : player2Name;
+        lines.push(serveLabelForState(entry.prevServe) + ' - ' + source + ' ' + receivingName + ' - ' + runningScore1 + '-' + runningScore2);
+      } else if(entry.type === 'penalty'){
+        const opponent = entry.player === 1 ? 2 : 1;
+        if(opponent === 1){ runningScore1 += 2; } else { runningScore2 += 2; }
+        const receivingName = opponent === 1 ? player1Name : player2Name;
+        lines.push(serveLabelForState(entry.prevServe) + ' - Penalty ' + receivingName + ' - ' + runningScore1 + '-' + runningScore2);
+      } else if(entry.type === 'warning'){
+        const name = entry.player === 1 ? player1Name : player2Name;
+        lines.push(name + ' warning');
+      } else if(entry.type === 'timeout'){
+        const name = entry.player === 1 ? player1Name : player2Name;
+        lines.push(name + ' time out');
+      }
+    });
+
+    sections.push({ setNumber: currentSetNumber, lines: lines });
+
+    return sections;
+  }
+
   function buildMatchSummaryText(){
     const winnerName = winner === 1 ? player1Name : player2Name;
     const winnerSets = winner === 1 ? setsWonP1 : setsWonP2;
     const loserSets = winner === 1 ? setsWonP2 : setsWonP1;
 
     const lines = [];
-    lines.push('Match Result');
-    lines.push('============');
+    lines.push('Showdown Match Report');
+    lines.push('======================');
     lines.push('');
     lines.push(player1Name + ' vs ' + player2Name);
     lines.push('Winner: ' + winnerName + ' (' + winnerSets + '-' + loserSets + ' in sets)');
+    lines.push('Match began: ' + formatMatchBeganText());
+    lines.push('Match length: ' + formatMatchLengthText());
     lines.push('');
     lines.push('Set scores:');
     for(let i = 0; i < 3; i++){
@@ -689,7 +778,27 @@
       }
     }
     lines.push('');
-    lines.push('Recorded: ' + new Date().toLocaleString());
+
+    const stats = computeMatchStats();
+    lines.push('Player points');
+    lines.push('-------------');
+    lines.push(player1Name + ' total points: ' + stats[1].total);
+    lines.push(player1Name + ' points from goals: ' + stats[1].goals);
+    lines.push(player1Name + ' points from fouls: ' + stats[1].fouls);
+    lines.push(player1Name + ' points from penalties: ' + stats[1].penalties);
+    lines.push(player2Name + ' total points: ' + stats[2].total);
+    lines.push(player2Name + ' points from goals: ' + stats[2].goals);
+    lines.push(player2Name + ' points from fouls: ' + stats[2].fouls);
+    lines.push(player2Name + ' points from penalties: ' + stats[2].penalties);
+
+    const setSections = buildSetDetailsSections();
+    setSections.forEach(section => {
+      if(!setScores[section.setNumber - 1]) return; // only report sets that actually completed
+      lines.push('');
+      lines.push('Set ' + section.setNumber + ' Details');
+      lines.push('-'.repeat(('Set ' + section.setNumber + ' Details').length));
+      section.lines.forEach(line => { lines.push(line); });
+    });
 
     return lines.join('\n');
   }
@@ -809,6 +918,7 @@
       if(winner !== player) return; // the win was undone while the sound was still playing
 
       if(matchOver){
+        matchEndTime = new Date();
         const winnerName = player === 1 ? player1Name : player2Name;
         const scoreText = player === 1 ? (setsWonP1 + '-' + setsWonP2) : (setsWonP2 + '-' + setsWonP1);
         matchWinBtn.textContent = winnerName + ' wins the match: ' + scoreText + '. Press to download results.';
@@ -1029,6 +1139,7 @@
     if(player === 1){ score1 += amount; } else { score2 += amount; }
     history.push({ type: 'score', player, amount, prevServe });
     serveState = (serveState + 1) % 4;
+    pointsScoredSinceReset = true;
 
     renderScores();
     renderServe();
@@ -1062,7 +1173,8 @@
 
     const opponent = penalizingPlayer === 1 ? 2 : 1;
     if(opponent === 1){ score1 += 2; } else { score2 += 2; }
-    history.push({ type: 'penalty', player: penalizingPlayer });
+    history.push({ type: 'penalty', player: penalizingPlayer, prevServe: serveState });
+    pointsScoredSinceReset = true;
 
     const wonNow = checkWin();
 
@@ -1295,6 +1407,10 @@
     changeEndsCompletionMessage = null;
     changeEndsTriggered = false;
     showServeBarMode('status');
+
+    matchStartTime = new Date();
+    matchEndTime = null;
+    pointsScoredSinceReset = false;
 
     currentSet = 1;
     setsWonP1 = 0;
