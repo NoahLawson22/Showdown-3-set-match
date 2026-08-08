@@ -266,6 +266,10 @@
     display: none;
   }
 
+  #countdownDisplay{
+    cursor: default;
+  }
+
   /* ---------- CONTROL BUTTONS ---------- */
   .controls{
     flex: 0 0 50dvh;
@@ -464,7 +468,7 @@
     <div class="serve-state-bar" id="serveState" role="status" aria-live="polite">Player 1 &middot; 1st Serve</div>
     <button type="button" class="serve-state-bar interactive" id="changeEndsBtn" hidden></button>
     <button type="button" class="serve-state-bar interactive win" id="matchWinBtn" hidden></button>
-    <div class="serve-state-bar" id="countdownDisplay" tabindex="-1" hidden></div>
+    <button type="button" class="serve-state-bar" id="countdownDisplay" tabindex="-1" hidden></button>
 
     <div class="controls">
       <button class="action-btn goal p1 wide" id="p1goal" aria-label="Player 1 Goal">
@@ -579,6 +583,7 @@
   let p2TimeoutUsed = false;
   let timeoutActive = false;
   let timeoutIntervalId = null;
+  let activeCountdownFinisher = null; // whichever countdown's "finish now" function is currently running
 
   // Match / set state
   let currentSet = 1; // 1, 2, or 3
@@ -839,6 +844,7 @@
       changeEndsState = 'idle';
       changeEndsOnComplete = null;
       changeEndsCompletionMessage = null;
+      activeCountdownFinisher = null;
     }
     showServeBarMode('status');
 
@@ -906,6 +912,12 @@
     downloadMatchSummary();
   });
 
+  countdownEl.addEventListener('click', () => {
+    if(activeCountdownFinisher){
+      activeCountdownFinisher();
+    }
+  });
+
   function showChangeEndsPrompt(onComplete, completionMessage){
     changeEndsState = 'pending';
     changeEndsOnComplete = onComplete;
@@ -934,6 +946,37 @@
         let remaining = 60;
         countdownEl.textContent = 'Change ends: ' + remaining;
 
+        function finishChangeEndsCountdown(){
+          clearInterval(changeEndsIntervalId);
+          changeEndsIntervalId = null;
+          changeEndsState = 'idle';
+          activeCountdownFinisher = null;
+          refreshButtonStates();
+
+          const onComplete = changeEndsOnComplete;
+          const isMidSetTrigger = !onComplete;
+          changeEndsOnComplete = null;
+
+          announce(changeEndsCompletionMessage);
+          changeEndsCompletionMessage = null;
+
+          setTimeout(() => {
+            if(onComplete){ onComplete(); }
+            showServeBarMode('status');
+            serveStateEl.textContent = '';
+
+            setTimeout(() => {
+              renderServe();
+
+              if(isMidSetTrigger){
+                setTimeout(() => { announceScores(); }, 500);
+              }
+            }, 60);
+          }, 500);
+        }
+
+        activeCountdownFinisher = finishChangeEndsCountdown;
+
         changeEndsIntervalId = setInterval(() => {
           remaining--;
 
@@ -946,31 +989,7 @@
           }
 
           if(remaining <= 0){
-            clearInterval(changeEndsIntervalId);
-            changeEndsIntervalId = null;
-            changeEndsState = 'idle';
-            refreshButtonStates();
-
-            const onComplete = changeEndsOnComplete;
-            const isMidSetTrigger = !onComplete;
-            changeEndsOnComplete = null;
-
-            announce(changeEndsCompletionMessage);
-            changeEndsCompletionMessage = null;
-
-            setTimeout(() => {
-              if(onComplete){ onComplete(); }
-              showServeBarMode('status');
-              serveStateEl.textContent = '';
-
-              setTimeout(() => {
-                renderServe();
-
-                if(isMidSetTrigger){
-                  setTimeout(() => { announceScores(); }, 500);
-                }
-              }, 60);
-            }, 500);
+            finishChangeEndsCountdown();
           }
         }, 1000);
       }, 60);
@@ -988,6 +1007,7 @@
       changeEndsState = 'idle';
       changeEndsOnComplete = null;
       changeEndsCompletionMessage = null;
+      activeCountdownFinisher = null;
       showServeBarMode('status');
       refreshButtonStates();
       renderServe();
@@ -1122,6 +1142,28 @@
         let remaining = 60;
         countdownEl.textContent = name + ' Time Out: ' + remaining;
 
+        function finishTimeoutCountdown(){
+          clearInterval(timeoutIntervalId);
+          timeoutIntervalId = null;
+          timeoutActive = false;
+          activeCountdownFinisher = null;
+          refreshButtonStates();
+
+          announce('Time out over');
+
+          setTimeout(() => {
+            showServeBarMode('status');
+            serveStateEl.textContent = '';
+
+            setTimeout(() => {
+              renderServe();
+              setTimeout(() => { announceScores(); }, 500);
+            }, 60);
+          }, 500);
+        }
+
+        activeCountdownFinisher = finishTimeoutCountdown;
+
         timeoutIntervalId = setInterval(() => {
           remaining--;
 
@@ -1134,22 +1176,7 @@
           }
 
           if(remaining <= 0){
-            clearInterval(timeoutIntervalId);
-            timeoutIntervalId = null;
-            timeoutActive = false;
-            refreshButtonStates();
-
-            announce('Time out over');
-
-            setTimeout(() => {
-              showServeBarMode('status');
-              serveStateEl.textContent = '';
-
-              setTimeout(() => {
-                renderServe();
-                setTimeout(() => { announceScores(); }, 500);
-              }, 60);
-            }, 500);
+            finishTimeoutCountdown();
           }
         }, 1000);
       }, 60);
@@ -1234,6 +1261,7 @@
         clearInterval(timeoutIntervalId);
         timeoutIntervalId = null;
         timeoutActive = false;
+        activeCountdownFinisher = null;
         showServeBarMode('status');
       }
 
@@ -1250,6 +1278,7 @@
     if(timeoutIntervalId){ clearInterval(timeoutIntervalId); timeoutIntervalId = null; }
     if(setTransitionTimeoutId){ clearTimeout(setTransitionTimeoutId); setTransitionTimeoutId = null; }
     if(changeEndsIntervalId){ clearInterval(changeEndsIntervalId); changeEndsIntervalId = null; }
+    activeCountdownFinisher = null;
     timeoutActive = false;
     p1TimeoutUsed = false;
     p2TimeoutUsed = false;
@@ -1289,6 +1318,7 @@
     if(timeoutIntervalId){ clearInterval(timeoutIntervalId); timeoutIntervalId = null; }
     if(setTransitionTimeoutId){ clearTimeout(setTransitionTimeoutId); setTransitionTimeoutId = null; }
     if(changeEndsIntervalId){ clearInterval(changeEndsIntervalId); changeEndsIntervalId = null; }
+    activeCountdownFinisher = null;
     timeoutActive = false;
     changeEndsState = 'idle';
     changeEndsOnComplete = null;
