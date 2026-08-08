@@ -463,7 +463,8 @@
 
     <div class="serve-state-bar" id="serveState" role="status" aria-live="polite">Player 1 &middot; 1st Serve</div>
     <button type="button" class="serve-state-bar interactive" id="changeEndsBtn" hidden></button>
-    <div class="serve-state-bar" id="countdownDisplay" hidden></div>
+    <button type="button" class="serve-state-bar interactive win" id="matchWinBtn" hidden></button>
+    <div class="serve-state-bar" id="countdownDisplay" tabindex="-1" hidden></div>
 
     <div class="controls">
       <button class="action-btn goal p1 wide" id="p1goal" aria-label="Player 1 Goal">
@@ -599,6 +600,7 @@
   const scoreboardEl = document.getElementById('scoreboardEl');
   const serveStateEl = document.getElementById('serveState');
   const changeEndsBtn = document.getElementById('changeEndsBtn');
+  const matchWinBtn = document.getElementById('matchWinBtn');
   const countdownEl = document.getElementById('countdownDisplay');
   const undoBtn = document.getElementById('undoBtn');
   const backToNamesBtn = document.getElementById('backToNamesBtn');
@@ -661,6 +663,51 @@
     if(playPromise && typeof playPromise.catch === 'function'){
       playPromise.catch(finish);
     }
+  }
+
+  function buildMatchSummaryText(){
+    const winnerName = winner === 1 ? player1Name : player2Name;
+    const winnerSets = winner === 1 ? setsWonP1 : setsWonP2;
+    const loserSets = winner === 1 ? setsWonP2 : setsWonP1;
+
+    const lines = [];
+    lines.push('Match Result');
+    lines.push('============');
+    lines.push('');
+    lines.push(player1Name + ' vs ' + player2Name);
+    lines.push('Winner: ' + winnerName + ' (' + winnerSets + '-' + loserSets + ' in sets)');
+    lines.push('');
+    lines.push('Set scores:');
+    for(let i = 0; i < 3; i++){
+      if(setScores[i]){
+        lines.push('  Set ' + (i + 1) + ': ' + player1Name + ' ' + setScores[i].p1 + ' - ' + setScores[i].p2 + ' ' + player2Name);
+      }
+    }
+    lines.push('');
+    lines.push('Recorded: ' + new Date().toLocaleString());
+
+    return lines.join('\n');
+  }
+
+  function sanitizeForFilename(name){
+    return name.trim().replace(/[^a-z0-9]+/gi, '_') || 'player';
+  }
+
+  function downloadMatchSummary(){
+    const text = buildMatchSummaryText();
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+
+    const filename = 'match-result-' + sanitizeForFilename(player1Name) + '-vs-' + sanitizeForFilename(player2Name) + '.txt';
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   function announceScores(){
@@ -756,22 +803,29 @@
     afterSound(winSound, () => {
       if(winner !== player) return; // the win was undone while the sound was still playing
 
+      if(matchOver){
+        const winnerName = player === 1 ? player1Name : player2Name;
+        const scoreText = player === 1 ? (setsWonP1 + '-' + setsWonP2) : (setsWonP2 + '-' + setsWonP1);
+        matchWinBtn.textContent = winnerName + ' wins the match: ' + scoreText + '. Press to download results.';
+        showServeBarMode('matchWin');
+        setTimeout(() => { matchWinBtn.focus(); }, 0);
+        return;
+      }
+
       renderServe();
 
       setTimeout(() => {
         if(winner !== player) return;
 
-        if(!matchOver){
-          announceScores();
+        announceScores();
 
-          const nextServePlayer = (currentSet === 1) ? 2 : 1;
-          const nextSetNumber = currentSet + 1;
-          if(setTransitionTimeoutId){ clearTimeout(setTransitionTimeoutId); }
-          setTransitionTimeoutId = setTimeout(() => {
-            setTransitionTimeoutId = null;
-            showChangeEndsPrompt(() => { softResetForNextSet(nextServePlayer); }, 'Set ' + nextSetNumber);
-          }, 4000);
-        }
+        const nextServePlayer = (currentSet === 1) ? 2 : 1;
+        const nextSetNumber = currentSet + 1;
+        if(setTransitionTimeoutId){ clearTimeout(setTransitionTimeoutId); }
+        setTransitionTimeoutId = setTimeout(() => {
+          setTransitionTimeoutId = null;
+          showChangeEndsPrompt(() => { softResetForNextSet(nextServePlayer); }, 'Set ' + nextSetNumber);
+        }, 4000);
       }, 500);
     });
   }
@@ -785,8 +839,8 @@
       changeEndsState = 'idle';
       changeEndsOnComplete = null;
       changeEndsCompletionMessage = null;
-      showServeBarMode('status');
     }
+    showServeBarMode('status');
 
     if(winner === 1){ setsWonP1--; } else if(winner === 2){ setsWonP2--; }
     setScores[currentSet - 1] = null;
@@ -848,6 +902,10 @@
     startChangeEndsCountdown();
   });
 
+  matchWinBtn.addEventListener('click', () => {
+    downloadMatchSummary();
+  });
+
   function showChangeEndsPrompt(onComplete, completionMessage){
     changeEndsState = 'pending';
     changeEndsOnComplete = onComplete;
@@ -864,44 +922,59 @@
     changeEndsState = 'counting';
     showServeBarMode('countdown');
 
-    let remaining = 60;
-    countdownEl.textContent = 'Change ends: ' + remaining;
+    // Move focus to the countdown display, but with no content yet, so screen readers
+    // register the focus move without reading anything at that moment.
+    countdownEl.textContent = '';
+    announce('60 seconds started');
 
-    changeEndsIntervalId = setInterval(() => {
-      remaining--;
+    setTimeout(() => {
+      countdownEl.focus();
 
-      if(remaining > 15){
+      setTimeout(() => {
+        let remaining = 60;
         countdownEl.textContent = 'Change ends: ' + remaining;
-      } else if(remaining > 0){
-        const text = remaining + ' seconds';
-        countdownEl.textContent = text;
-        if(remaining === 15){ announce(text); }
-      }
 
-      if(remaining <= 0){
-        clearInterval(changeEndsIntervalId);
-        changeEndsIntervalId = null;
-        changeEndsState = 'idle';
-        refreshButtonStates();
+        changeEndsIntervalId = setInterval(() => {
+          remaining--;
 
-        const onComplete = changeEndsOnComplete;
-        const isMidSetTrigger = !onComplete;
-        changeEndsOnComplete = null;
-
-        announce(changeEndsCompletionMessage);
-        changeEndsCompletionMessage = null;
-
-        setTimeout(() => {
-          if(onComplete){ onComplete(); }
-          showServeBarMode('status');
-          renderServe();
-
-          if(isMidSetTrigger){
-            setTimeout(() => { announceScores(); }, 500);
+          if(remaining > 15){
+            countdownEl.textContent = 'Change ends: ' + remaining;
+          } else if(remaining > 0){
+            const text = remaining + ' seconds';
+            countdownEl.textContent = text;
+            if(remaining === 15){ announce(text); }
           }
-        }, 500);
-      }
-    }, 1000);
+
+          if(remaining <= 0){
+            clearInterval(changeEndsIntervalId);
+            changeEndsIntervalId = null;
+            changeEndsState = 'idle';
+            refreshButtonStates();
+
+            const onComplete = changeEndsOnComplete;
+            const isMidSetTrigger = !onComplete;
+            changeEndsOnComplete = null;
+
+            announce(changeEndsCompletionMessage);
+            changeEndsCompletionMessage = null;
+
+            setTimeout(() => {
+              if(onComplete){ onComplete(); }
+              showServeBarMode('status');
+              serveStateEl.textContent = '';
+
+              setTimeout(() => {
+                renderServe();
+
+                if(isMidSetTrigger){
+                  setTimeout(() => { announceScores(); }, 500);
+                }
+              }, 60);
+            }, 500);
+          }
+        }, 1000);
+      }, 60);
+    }, 0);
   }
 
   function rearmChangeEndsIfUndone(){
@@ -922,10 +995,11 @@
   }
 
   function showServeBarMode(mode){
-    // mode: 'status' | 'button' | 'countdown'
+    // mode: 'status' | 'button' | 'countdown' | 'matchWin'
     serveStateEl.hidden = (mode !== 'status');
     changeEndsBtn.hidden = (mode !== 'button');
     countdownEl.hidden = (mode !== 'countdown');
+    matchWinBtn.hidden = (mode !== 'matchWin');
   }
 
   function addPoints(player, amount){
@@ -1036,36 +1110,50 @@
     serveStateEl.classList.remove('win');
     showServeBarMode('countdown');
 
-    let remaining = 60;
-    countdownEl.textContent = name + ' Time Out: ' + remaining;
+    // Move focus to the countdown display, but with no content yet, so screen readers
+    // register the focus move without reading anything at that moment.
+    countdownEl.textContent = '';
+    announce('60 seconds started');
 
-    timeoutIntervalId = setInterval(() => {
-      remaining--;
+    setTimeout(() => {
+      countdownEl.focus();
 
-      if(remaining > 15){
+      setTimeout(() => {
+        let remaining = 60;
         countdownEl.textContent = name + ' Time Out: ' + remaining;
-      } else if(remaining > 0){
-        const text = remaining + ' seconds';
-        countdownEl.textContent = text;
-        if(remaining === 15){ announce(text); }
-      }
 
-      if(remaining <= 0){
-        clearInterval(timeoutIntervalId);
-        timeoutIntervalId = null;
-        timeoutActive = false;
-        refreshButtonStates();
+        timeoutIntervalId = setInterval(() => {
+          remaining--;
 
-        announce('Time out over');
+          if(remaining > 15){
+            countdownEl.textContent = name + ' Time Out: ' + remaining;
+          } else if(remaining > 0){
+            const text = remaining + ' seconds';
+            countdownEl.textContent = text;
+            if(remaining === 15){ announce(text); }
+          }
 
-        setTimeout(() => {
-          showServeBarMode('status');
-          renderServe();
+          if(remaining <= 0){
+            clearInterval(timeoutIntervalId);
+            timeoutIntervalId = null;
+            timeoutActive = false;
+            refreshButtonStates();
 
-          setTimeout(() => { announceScores(); }, 500);
-        }, 500);
-      }
-    }, 1000);
+            announce('Time out over');
+
+            setTimeout(() => {
+              showServeBarMode('status');
+              serveStateEl.textContent = '';
+
+              setTimeout(() => {
+                renderServe();
+                setTimeout(() => { announceScores(); }, 500);
+              }, 60);
+            }, 500);
+          }
+        }, 1000);
+      }, 60);
+    }, 0);
   }
 
   p1timeoutBtn.addEventListener('click', () => startTimeout(1));
