@@ -645,6 +645,24 @@
     setTimeout(() => { announcer.textContent = message; }, 50);
   }
 
+  function afterSound(audioEl, callback){
+    let finished = false;
+    const finish = () => {
+      if(finished) return;
+      finished = true;
+      audioEl.removeEventListener('ended', finish);
+      audioEl.removeEventListener('error', finish);
+      callback();
+    };
+    audioEl.addEventListener('ended', finish);
+    audioEl.addEventListener('error', finish);
+    audioEl.currentTime = 0;
+    const playPromise = audioEl.play();
+    if(playPromise && typeof playPromise.catch === 'function'){
+      playPromise.catch(finish);
+    }
+  }
+
   function announceScores(){
     const won = checkWin();
     if(won === 1){
@@ -733,17 +751,29 @@
 
     if(setsWonP1 === 2 || setsWonP2 === 2){
       matchOver = true;
-      renderServe();
-    } else {
-      renderServe();
-      const nextServePlayer = (currentSet === 1) ? 2 : 1;
-      const nextSetNumber = currentSet + 1;
-      if(setTransitionTimeoutId){ clearTimeout(setTransitionTimeoutId); }
-      setTransitionTimeoutId = setTimeout(() => {
-        setTransitionTimeoutId = null;
-        showChangeEndsPrompt(() => { softResetForNextSet(nextServePlayer); }, 'Set ' + nextSetNumber);
-      }, 4000);
     }
+
+    afterSound(winSound, () => {
+      if(winner !== player) return; // the win was undone while the sound was still playing
+
+      renderServe();
+
+      setTimeout(() => {
+        if(winner !== player) return;
+
+        if(!matchOver){
+          announceScores();
+
+          const nextServePlayer = (currentSet === 1) ? 2 : 1;
+          const nextSetNumber = currentSet + 1;
+          if(setTransitionTimeoutId){ clearTimeout(setTransitionTimeoutId); }
+          setTransitionTimeoutId = setTimeout(() => {
+            setTransitionTimeoutId = null;
+            showChangeEndsPrompt(() => { softResetForNextSet(nextServePlayer); }, 'Set ' + nextSetNumber);
+          }, 4000);
+        }
+      }, 500);
+    });
   }
 
   function clearSetWin(){
@@ -910,11 +940,7 @@
     renderServe();
 
     const wonNow = checkWin();
-    const willEndMatch = wonNow && (
-      (wonNow === 1 && setsWonP1 + 1 === 2) ||
-      (wonNow === 2 && setsWonP2 + 1 === 2)
-    );
-    if(!willEndMatch){ announceScores(); }
+    if(!wonNow){ announceScores(); }
 
     updateUndoState();
     checkChangeEnds();
@@ -945,13 +971,9 @@
     history.push({ type: 'penalty', player: penalizingPlayer });
 
     const wonNow = checkWin();
-    const willEndMatch = wonNow && (
-      (wonNow === 1 && setsWonP1 + 1 === 2) ||
-      (wonNow === 2 && setsWonP2 + 1 === 2)
-    );
 
     renderScores();
-    if(!willEndMatch){ announceScores(); }
+    if(!wonNow){ announceScores(); }
     updateUndoState();
     checkChangeEnds();
     applyWinCheck();
