@@ -735,14 +735,20 @@
 
       if(entry.type === 'score'){
         if(entry.player === 1){ runningScore1 += entry.amount; } else { runningScore2 += entry.amount; }
-        const source = entry.amount === 2 ? 'Goal' : 'Foul';
-        const receivingName = entry.player === 1 ? player1Name : player2Name;
-        lines.push(serveLabelForState(entry.prevServe) + ' - ' + source + ' ' + receivingName + ' - ' + runningScore1 + '-' + runningScore2);
+        if(entry.amount === 2){
+          // Goal: the scoring player is entry.player
+          const scorerName = entry.player === 1 ? player1Name : player2Name;
+          lines.push(serveLabelForState(entry.prevServe) + ' - ' + scorerName + ' Goal - ' + runningScore1 + '-' + runningScore2);
+        } else {
+          // Foul: entry.player is who RECEIVES the point; the committing player is the other one
+          const committingName = entry.player === 1 ? player2Name : player1Name;
+          lines.push(serveLabelForState(entry.prevServe) + ' - ' + committingName + ' Foul - ' + runningScore1 + '-' + runningScore2);
+        }
       } else if(entry.type === 'penalty'){
         const opponent = entry.player === 1 ? 2 : 1;
         if(opponent === 1){ runningScore1 += 2; } else { runningScore2 += 2; }
-        const receivingName = opponent === 1 ? player1Name : player2Name;
-        lines.push(serveLabelForState(entry.prevServe) + ' - Penalty ' + receivingName + ' - ' + runningScore1 + '-' + runningScore2);
+        const committingName = entry.player === 1 ? player1Name : player2Name;
+        lines.push(committingName + ' Penalty - ' + runningScore1 + '-' + runningScore2);
       } else if(entry.type === 'warning'){
         const name = entry.player === 1 ? player1Name : player2Name;
         lines.push(name + ' warning');
