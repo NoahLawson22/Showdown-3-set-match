@@ -42,6 +42,34 @@
   }
 
   /* ---------- LANDING PAGE ---------- */
+  .mode-row{
+    flex: 1;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px;
+    min-height: 0;
+  }
+
+  .mode-btn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: var(--panel);
+    color: var(--text);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-size: clamp(14px, 4vh, 34px);
+    text-align:center;
+    padding: 8px;
+    border:none;
+    cursor:pointer;
+  }
+  .mode-btn[aria-pressed="true"]{
+    background: var(--amber);
+    color: #000;
+  }
+
   .landing-top{
     flex: 1;
     display:flex;
@@ -422,6 +450,10 @@
 <body>
 
   <div class="page" id="landingPage">
+    <div class="mode-row">
+      <button type="button" class="mode-btn" id="singleSetModeBtn" aria-pressed="true">Single set</button>
+      <button type="button" class="mode-btn" id="threeSetModeBtn" aria-pressed="false">3-set match</button>
+    </div>
     <div class="landing-top">
       <div class="landing-title-bar" role="text">Enter player names:</div>
       <div class="name-inputs">
@@ -510,6 +542,70 @@
 
   </div>
 
+  <div class="page" id="singleSetScoreboardPage" hidden>
+
+    <div class="scoreboard" id="scoreboardElSs" tabindex="0" aria-label="0. 0.">
+      <div class="center-divider"></div>
+      <div class="score-half p1">
+        <div class="score-num" id="score1Ss" aria-hidden="true">0</div>
+        <div class="serve-dots" id="dots1Ss">
+          <div class="serve-dot" id="dot1aSs"></div>
+          <div class="serve-dot" id="dot1bSs"></div>
+        </div>
+      </div>
+      <div class="score-half p2">
+        <div class="score-num" id="score2Ss" aria-hidden="true">0</div>
+        <div class="serve-dots" id="dots2Ss">
+          <div class="serve-dot" id="dot2aSs"></div>
+          <div class="serve-dot" id="dot2bSs"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="serve-state-bar" id="serveStateSs" role="status" aria-live="polite">Player 1 &middot; 1st Serve</div>
+    <button type="button" class="serve-state-bar interactive win" id="matchWinBtnSs" hidden></button>
+    <button type="button" class="serve-state-bar" id="countdownDisplaySs" tabindex="-1" hidden></button>
+
+    <div class="controls">
+      <button class="action-btn goal p1 wide" id="p1goalSs" aria-label="Player 1 Goal">
+        <span class="btn-player" id="p1goalLabelSs">Player 1</span>
+        <span class="btn-action">GOAL</span>
+      </button>
+      <button class="action-btn goal p2 wide" id="p2goalSs" aria-label="Player 2 Goal">
+        <span class="btn-player" id="p2goalLabelSs">Player 2</span>
+        <span class="btn-action">GOAL</span>
+      </button>
+      <button class="action-btn foul p1 wide" id="p1foulSs" aria-label="Player 1 Foul">
+        <span class="btn-player" id="p1foulLabelSs">Player 1</span>
+        <span class="btn-action">FOUL</span>
+      </button>
+      <button class="action-btn foul p2 wide" id="p2foulSs" aria-label="Player 2 Foul">
+        <span class="btn-player" id="p2foulLabelSs">Player 2</span>
+        <span class="btn-action">FOUL</span>
+      </button>
+    </div>
+
+    <div class="warn-penalty-row">
+      <button class="p1 warn-toggle" id="p1WarnBtnSs" aria-pressed="false">Warning Player 1</button>
+      <button class="p1" id="p1PenaltyBtnSs">Penalty Player 1</button>
+      <button class="p1" id="p1timeoutSs">Timeout Player 1</button>
+      <button class="p2 warn-toggle" id="p2WarnBtnSs" aria-pressed="false">Warning Player 2</button>
+      <button class="p2" id="p2PenaltyBtnSs">Penalty Player 2</button>
+      <button class="p2" id="p2timeoutSs">Timeout Player 2</button>
+    </div>
+
+    <div class="bottom-bar">
+      <button class="undo-btn" id="undoBtnSs" disabled>Undo</button>
+      <button class="reset-btn" id="resetBtnSs">Reset</button>
+      <button class="back-to-names-btn" id="backToNamesBtnSs">Back to names</button>
+    </div>
+
+    <div id="announcerSs" class="sr-only" aria-live="polite" role="status"></div>
+
+    <audio id="winSoundSs" src="win.mp3" preload="auto"></audio>
+
+  </div>
+
 <script>
   // ============================================================
   // LANDING PAGE
@@ -520,6 +616,24 @@
   const p2LandingNameInput = document.getElementById('p2LandingNameInput');
   const okBtn = document.getElementById('okBtn');
   const swapNamesBtn = document.getElementById('swapNamesBtn');
+  const singleSetModeBtn = document.getElementById('singleSetModeBtn');
+  const threeSetModeBtn = document.getElementById('threeSetModeBtn');
+
+  let selectedMode = 'singleSet'; // 'singleSet' | 'threeSet'
+
+  function updateModeButtons(){
+    singleSetModeBtn.setAttribute('aria-pressed', selectedMode === 'singleSet' ? 'true' : 'false');
+    threeSetModeBtn.setAttribute('aria-pressed', selectedMode === 'threeSet' ? 'true' : 'false');
+  }
+
+  singleSetModeBtn.addEventListener('click', () => {
+    selectedMode = 'singleSet';
+    updateModeButtons();
+  });
+  threeSetModeBtn.addEventListener('click', () => {
+    selectedMode = 'threeSet';
+    updateModeButtons();
+  });
 
   function updateSwapButtonState(){
     swapNamesBtn.disabled = (p1LandingNameInput.value === 'Player 1' || p2LandingNameInput.value === 'Player 2');
@@ -558,15 +672,21 @@
   okBtn.addEventListener('click', () => {
     okBtn.blur();
 
-    if(!pointsScoredSinceReset){ matchStartTime = new Date(); }
-
-    setPlayerNames(p1LandingNameInput.value, p2LandingNameInput.value);
-
-    landingPage.hidden = true;
-    scoreboardPage.hidden = false;
+    if(selectedMode === 'singleSet'){
+      if(!ssPointsScoredSinceReset){ ssMatchStartTime = new Date(); }
+      ssSetPlayerNames(p1LandingNameInput.value, p2LandingNameInput.value);
+      landingPage.hidden = true;
+      singleSetScoreboardPage.hidden = false;
+    } else {
+      if(!pointsScoredSinceReset){ matchStartTime = new Date(); }
+      setPlayerNames(p1LandingNameInput.value, p2LandingNameInput.value);
+      landingPage.hidden = true;
+      scoreboardPage.hidden = false;
+    }
   });
 
   updateSwapButtonState();
+  updateModeButtons();
 
   // ============================================================
   // SCOREBOARD PAGE (unchanged from the match-tracker version)
@@ -773,6 +893,7 @@
     lines.push('======================');
     lines.push('');
     lines.push(player1Name + ' vs ' + player2Name);
+    lines.push('3-set match');
     lines.push('Winner: ' + winnerName + ' (' + winnerSets + '-' + loserSets + ' in sets)');
     lines.push('Match began: ' + formatMatchBeganText());
     lines.push('Match length: ' + formatMatchLengthText());
@@ -1451,6 +1572,9 @@
     p2LandingNameInput.value = player2Name;
     updateSwapButtonState();
 
+    selectedMode = 'threeSet';
+    updateModeButtons();
+
     scoreboardPage.hidden = true;
     landingPage.hidden = false;
   });
@@ -1462,6 +1586,604 @@
   updateWarnIndicatorUI(1);
   updateWarnIndicatorUI(2);
   refreshButtonStates();
+
+  // ============================================================
+  // SINGLE-SET SCOREBOARD PAGE (same rules as the 3-set version,
+  // except the game ends after just one set)
+  // ============================================================
+  const singleSetScoreboardPage = document.getElementById('singleSetScoreboardPage');
+
+  let ssScore1 = 0;
+  let ssScore2 = 0;
+  let ssServeState = 0;
+  let ssHistory = [];
+  let ssWinner = null;
+  let ssPlayer1Name = 'Player 1';
+  let ssPlayer2Name = 'Player 2';
+  let ssP1WarningIssued = false;
+  let ssP2WarningIssued = false;
+  let ssP1TimeoutUsed = false;
+  let ssP2TimeoutUsed = false;
+  let ssTimeoutActive = false;
+  let ssTimeoutIntervalId = null;
+  let ssActiveCountdownFinisher = null;
+  let ssMatchStartTime = null;
+  let ssMatchEndTime = null;
+  let ssPointsScoredSinceReset = false;
+
+  const ssScore1El = document.getElementById('score1Ss');
+  const ssScore2El = document.getElementById('score2Ss');
+  const ssScoreboardEl = document.getElementById('scoreboardElSs');
+  const ssServeStateEl = document.getElementById('serveStateSs');
+  const ssMatchWinBtn = document.getElementById('matchWinBtnSs');
+  const ssCountdownEl = document.getElementById('countdownDisplaySs');
+  const ssUndoBtn = document.getElementById('undoBtnSs');
+  const ssBackToNamesBtn = document.getElementById('backToNamesBtnSs');
+  const ssAnnouncer = document.getElementById('announcerSs');
+  const ssWinSound = document.getElementById('winSoundSs');
+  const ssP1goalBtn = document.getElementById('p1goalSs');
+  const ssP2goalBtn = document.getElementById('p2goalSs');
+  const ssP1foulBtn = document.getElementById('p1foulSs');
+  const ssP2foulBtn = document.getElementById('p2foulSs');
+  const ssP1WarnBtn = document.getElementById('p1WarnBtnSs');
+  const ssP2WarnBtn = document.getElementById('p2WarnBtnSs');
+  const ssP1PenaltyBtn = document.getElementById('p1PenaltyBtnSs');
+  const ssP2PenaltyBtn = document.getElementById('p2PenaltyBtnSs');
+  const ssP1timeoutBtn = document.getElementById('p1timeoutSs');
+  const ssP2timeoutBtn = document.getElementById('p2timeoutSs');
+  const ssP1goalLabel = document.getElementById('p1goalLabelSs');
+  const ssP2goalLabel = document.getElementById('p2goalLabelSs');
+  const ssP1foulLabel = document.getElementById('p1foulLabelSs');
+  const ssP2foulLabel = document.getElementById('p2foulLabelSs');
+  const ssActionButtons = [ssP1goalBtn, ssP2goalBtn, ssP1foulBtn, ssP2foulBtn, ssP1WarnBtn, ssP2WarnBtn, ssP1PenaltyBtn, ssP2PenaltyBtn];
+
+  const ssDots = {
+    1: [document.getElementById('dot1aSs'), document.getElementById('dot1bSs')],
+    2: [document.getElementById('dot2aSs'), document.getElementById('dot2bSs')]
+  };
+
+  function ssGetServeLabels(){
+    return [
+      ssPlayer1Name + ' \u00b7 1st Serve',
+      ssPlayer1Name + ' \u00b7 2nd Serve',
+      ssPlayer2Name + ' \u00b7 1st Serve',
+      ssPlayer2Name + ' \u00b7 2nd Serve'
+    ];
+  }
+
+  function ssAnnounce(message){
+    ssAnnouncer.textContent = '';
+    setTimeout(() => { ssAnnouncer.textContent = message; }, 50);
+  }
+
+  function ssAfterSound(audioEl, callback){
+    let finished = false;
+    const finish = () => {
+      if(finished) return;
+      finished = true;
+      audioEl.removeEventListener('ended', finish);
+      audioEl.removeEventListener('error', finish);
+      callback();
+    };
+    audioEl.addEventListener('ended', finish);
+    audioEl.addEventListener('error', finish);
+    audioEl.currentTime = 0;
+    const playPromise = audioEl.play();
+    if(playPromise && typeof playPromise.catch === 'function'){
+      playPromise.catch(finish);
+    }
+  }
+
+  function ssServeLabelForState(state){
+    return ssGetServeLabels()[state];
+  }
+
+  function ssFormatMatchBeganText(){
+    if(!ssMatchStartTime) return 'Unknown';
+    const dateStr = ssMatchStartTime.toLocaleDateString();
+    const timeStr = ssMatchStartTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return dateStr + ' ' + timeStr;
+  }
+
+  function ssFormatMatchLengthText(){
+    if(!ssMatchStartTime || !ssMatchEndTime) return 'Unknown';
+    const totalSeconds = Math.max(0, Math.round((ssMatchEndTime - ssMatchStartTime) / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return minutes + ' minutes ' + seconds + ' seconds';
+  }
+
+  function ssComputeMatchStats(){
+    const stats = {
+      1: { total: 0, goals: 0, fouls: 0, penalties: 0 },
+      2: { total: 0, goals: 0, fouls: 0, penalties: 0 }
+    };
+
+    ssHistory.forEach(entry => {
+      if(entry.type === 'score'){
+        const p = entry.player;
+        if(entry.amount === 2){ stats[p].goals += entry.amount; }
+        else if(entry.amount === 1){ stats[p].fouls += entry.amount; }
+        stats[p].total += entry.amount;
+      } else if(entry.type === 'penalty'){
+        const opponent = entry.player === 1 ? 2 : 1;
+        stats[opponent].penalties += 2;
+        stats[opponent].total += 2;
+      }
+    });
+
+    return stats;
+  }
+
+  function ssBuildSetDetailsLines(){
+    let runningScore1 = 0;
+    let runningScore2 = 0;
+    const lines = [];
+
+    ssHistory.forEach(entry => {
+      if(entry.type === 'score'){
+        if(entry.player === 1){ runningScore1 += entry.amount; } else { runningScore2 += entry.amount; }
+        if(entry.amount === 2){
+          const scorerName = entry.player === 1 ? ssPlayer1Name : ssPlayer2Name;
+          lines.push(ssServeLabelForState(entry.prevServe) + ' - ' + scorerName + ' Goal - ' + runningScore1 + '-' + runningScore2);
+        } else {
+          const committingName = entry.player === 1 ? ssPlayer2Name : ssPlayer1Name;
+          lines.push(ssServeLabelForState(entry.prevServe) + ' - ' + committingName + ' Foul - ' + runningScore1 + '-' + runningScore2);
+        }
+      } else if(entry.type === 'penalty'){
+        const opponent = entry.player === 1 ? 2 : 1;
+        if(opponent === 1){ runningScore1 += 2; } else { runningScore2 += 2; }
+        const committingName = entry.player === 1 ? ssPlayer1Name : ssPlayer2Name;
+        lines.push(committingName + ' Penalty - ' + runningScore1 + '-' + runningScore2);
+      } else if(entry.type === 'warning'){
+        const name = entry.player === 1 ? ssPlayer1Name : ssPlayer2Name;
+        lines.push(name + ' warning');
+      } else if(entry.type === 'timeout'){
+        const name = entry.player === 1 ? ssPlayer1Name : ssPlayer2Name;
+        lines.push(name + ' time out');
+      }
+    });
+
+    return lines;
+  }
+
+  function ssBuildMatchSummaryText(){
+    const winnerName = ssWinner === 1 ? ssPlayer1Name : ssPlayer2Name;
+
+    const lines = [];
+    lines.push('Showdown Match Report');
+    lines.push('======================');
+    lines.push('');
+    lines.push(ssPlayer1Name + ' vs ' + ssPlayer2Name);
+    lines.push('Single set');
+    lines.push('Winner: ' + winnerName + ' (' + ssScore1 + '-' + ssScore2 + ')');
+    lines.push('Match began: ' + ssFormatMatchBeganText());
+    lines.push('Match length: ' + ssFormatMatchLengthText());
+    lines.push('');
+
+    const stats = ssComputeMatchStats();
+    lines.push('Player points');
+    lines.push('-------------');
+    lines.push(ssPlayer1Name + ' total points: ' + stats[1].total);
+    lines.push(ssPlayer1Name + ' points from goals: ' + stats[1].goals);
+    lines.push(ssPlayer1Name + ' points from fouls: ' + stats[1].fouls);
+    lines.push(ssPlayer1Name + ' points from penalties: ' + stats[1].penalties);
+    lines.push(ssPlayer2Name + ' total points: ' + stats[2].total);
+    lines.push(ssPlayer2Name + ' points from goals: ' + stats[2].goals);
+    lines.push(ssPlayer2Name + ' points from fouls: ' + stats[2].fouls);
+    lines.push(ssPlayer2Name + ' points from penalties: ' + stats[2].penalties);
+
+    lines.push('');
+    lines.push('Set 1 Details');
+    lines.push('-------------');
+    ssBuildSetDetailsLines().forEach(line => { lines.push(line); });
+
+    return lines.join('\n');
+  }
+
+  function ssDownloadMatchSummary(){
+    const text = ssBuildMatchSummaryText();
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+
+    const filename = 'match-result-' + sanitizeForFilename(ssPlayer1Name) + '-vs-' + sanitizeForFilename(ssPlayer2Name) + '.txt';
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function ssAnnounceScores(){
+    const won = ssCheckWin();
+    if(won === 1){
+      ssAnnounce(ssScore1 + '. ' + ssScore2 + '.');
+    } else if(won === 2){
+      ssAnnounce(ssScore2 + '. ' + ssScore1 + '.');
+    } else if(ssServeState === 2 || ssServeState === 3){
+      ssAnnounce(ssScore2 + '. ' + ssScore1 + '.');
+    } else {
+      ssAnnounce(ssScore1 + '. ' + ssScore2 + '.');
+    }
+  }
+
+  function ssRenderScores(){
+    ssScore1El.textContent = ssScore1;
+    ssScore2El.textContent = ssScore2;
+    ssScoreboardEl.setAttribute('aria-label', ssScore1 + '. ' + ssScore2 + '.');
+  }
+
+  function ssCurrentServeDisplayText(){
+    if(ssWinner !== null){
+      const winnerName = ssWinner === 1 ? ssPlayer1Name : ssPlayer2Name;
+      return winnerName + ' wins the set: ' + ssScore1 + '-' + ssScore2;
+    }
+    return ssGetServeLabels()[ssServeState];
+  }
+
+  function ssRenderServe(){
+    if(!ssTimeoutActive){
+      ssServeStateEl.textContent = ssCurrentServeDisplayText();
+      ssServeStateEl.classList.toggle('win', ssWinner !== null);
+    }
+
+    const servingPlayer = ssServeState < 2 ? 1 : 2;
+    const filledCount = (ssServeState % 2 === 0) ? 1 : 2;
+
+    [1,2].forEach(player => {
+      ssDots[player].forEach((dot, i) => {
+        const isServer = player === servingPlayer;
+        dot.classList.toggle('filled', isServer && i < filledCount);
+        dot.style.visibility = isServer ? 'visible' : 'hidden';
+      });
+    });
+  }
+
+  function ssUpdateUndoState(){
+    ssUndoBtn.disabled = ssHistory.length === 0;
+  }
+
+  function ssCheckWin(){
+    if(ssScore1 >= 11 && ssScore1 - ssScore2 >= 2) return 1;
+    if(ssScore2 >= 11 && ssScore2 - ssScore1 >= 2) return 2;
+    return null;
+  }
+
+  function ssSetActionButtonsDisabled(disabled){
+    ssActionButtons.forEach(btn => { btn.disabled = disabled; });
+  }
+
+  function ssRefreshButtonStates(){
+    const blocked = ssWinner !== null || ssTimeoutActive;
+    ssSetActionButtonsDisabled(blocked);
+    ssP1timeoutBtn.disabled = blocked || ssP1TimeoutUsed;
+    ssP2timeoutBtn.disabled = blocked || ssP2TimeoutUsed;
+  }
+
+  function ssFinalizeGameWin(player){
+    ssWinner = player;
+    ssRefreshButtonStates();
+
+    ssAfterSound(ssWinSound, () => {
+      if(ssWinner !== player) return;
+
+      ssMatchEndTime = new Date();
+      const winnerName = player === 1 ? ssPlayer1Name : ssPlayer2Name;
+      ssMatchWinBtn.textContent = winnerName + ' wins the set: ' + ssScore1 + '-' + ssScore2 + '. Press to download results.';
+      ssShowServeBarMode('matchWin');
+      setTimeout(() => { ssMatchWinBtn.focus(); }, 0);
+    });
+  }
+
+  function ssClearGameWin(){
+    ssShowServeBarMode('status');
+
+    ssWinner = null;
+    ssRefreshButtonStates();
+    ssRenderServe();
+  }
+
+  function ssApplyWinCheck(){
+    const won = ssCheckWin();
+    if(won && ssWinner === null){
+      ssFinalizeGameWin(won);
+    } else if(!won && ssWinner !== null){
+      ssClearGameWin();
+    }
+  }
+
+  ssMatchWinBtn.addEventListener('click', () => {
+    ssDownloadMatchSummary();
+  });
+
+  ssCountdownEl.addEventListener('click', () => {
+    if(ssActiveCountdownFinisher){
+      ssActiveCountdownFinisher();
+    }
+  });
+
+  function ssShowServeBarMode(mode){
+    ssServeStateEl.hidden = (mode !== 'status');
+    ssCountdownEl.hidden = (mode !== 'countdown');
+    ssMatchWinBtn.hidden = (mode !== 'matchWin');
+  }
+
+  function ssAddPoints(player, amount){
+    if(ssWinner !== null) return;
+
+    const prevServe = ssServeState;
+    if(player === 1){ ssScore1 += amount; } else { ssScore2 += amount; }
+    ssHistory.push({ type: 'score', player, amount, prevServe });
+    ssServeState = (ssServeState + 1) % 4;
+    ssPointsScoredSinceReset = true;
+
+    ssRenderScores();
+    ssRenderServe();
+
+    const wonNow = ssCheckWin();
+    if(!wonNow){ ssAnnounceScores(); }
+
+    ssUpdateUndoState();
+    ssApplyWinCheck();
+  }
+
+  function ssUpdateWarnIndicatorUI(player){
+    const issued = player === 1 ? ssP1WarningIssued : ssP2WarningIssued;
+    const btn = player === 1 ? ssP1WarnBtn : ssP2WarnBtn;
+    btn.classList.toggle('active', issued);
+    btn.setAttribute('aria-pressed', issued ? 'true' : 'false');
+  }
+
+  function ssToggleWarningIndicator(player){
+    if(ssWinner !== null) return;
+
+    if(player === 1){ ssP1WarningIssued = !ssP1WarningIssued; } else { ssP2WarningIssued = !ssP2WarningIssued; }
+    ssHistory.push({ type: 'warning', player });
+    ssUpdateWarnIndicatorUI(player);
+    ssUpdateUndoState();
+  }
+
+  function ssHandlePenaltyPress(penalizingPlayer){
+    if(ssWinner !== null) return;
+
+    const opponent = penalizingPlayer === 1 ? 2 : 1;
+    if(opponent === 1){ ssScore1 += 2; } else { ssScore2 += 2; }
+    ssHistory.push({ type: 'penalty', player: penalizingPlayer, prevServe: ssServeState });
+    ssPointsScoredSinceReset = true;
+
+    const wonNow = ssCheckWin();
+
+    ssRenderScores();
+    if(!wonNow){ ssAnnounceScores(); }
+    ssUpdateUndoState();
+    ssApplyWinCheck();
+  }
+
+  function ssRefreshNameDependentUI(){
+    ssP1goalLabel.textContent = ssPlayer1Name;
+    ssP1foulLabel.textContent = ssPlayer1Name;
+    ssP2goalLabel.textContent = ssPlayer2Name;
+    ssP2foulLabel.textContent = ssPlayer2Name;
+
+    ssP1goalBtn.setAttribute('aria-label', ssPlayer1Name + ' Goal');
+    ssP1foulBtn.setAttribute('aria-label', ssPlayer1Name + ' Foul');
+    ssP2goalBtn.setAttribute('aria-label', ssPlayer2Name + ' Goal');
+    ssP2foulBtn.setAttribute('aria-label', ssPlayer2Name + ' Foul');
+
+    ssP1WarnBtn.textContent = 'Warning ' + ssPlayer1Name;
+    ssP2WarnBtn.textContent = 'Warning ' + ssPlayer2Name;
+    ssP1PenaltyBtn.textContent = 'Penalty ' + ssPlayer1Name;
+    ssP2PenaltyBtn.textContent = 'Penalty ' + ssPlayer2Name;
+    ssUpdateWarnIndicatorUI(1);
+    ssUpdateWarnIndicatorUI(2);
+
+    ssP1timeoutBtn.textContent = 'Timeout ' + ssPlayer1Name;
+    ssP2timeoutBtn.textContent = 'Timeout ' + ssPlayer2Name;
+
+    ssRenderServe();
+  }
+
+  function ssSetPlayerNames(name1, name2){
+    ssPlayer1Name = name1.trim() || 'Player 1';
+    ssPlayer2Name = name2.trim() || 'Player 2';
+    ssRefreshNameDependentUI();
+  }
+
+  ssP1goalBtn.addEventListener('click', () => ssAddPoints(1, 2));
+  ssP2goalBtn.addEventListener('click', () => ssAddPoints(2, 2));
+  ssP1foulBtn.addEventListener('click', () => ssAddPoints(2, 1));
+  ssP2foulBtn.addEventListener('click', () => ssAddPoints(1, 1));
+
+  ssP1WarnBtn.addEventListener('click', () => ssToggleWarningIndicator(1));
+  ssP2WarnBtn.addEventListener('click', () => ssToggleWarningIndicator(2));
+
+  ssP1PenaltyBtn.addEventListener('click', () => ssHandlePenaltyPress(1));
+  ssP2PenaltyBtn.addEventListener('click', () => ssHandlePenaltyPress(2));
+
+  function ssStartTimeout(player){
+    if(ssWinner !== null || ssTimeoutActive) return;
+    const used = player === 1 ? ssP1TimeoutUsed : ssP2TimeoutUsed;
+    if(used) return;
+
+    if(player === 1){ ssP1TimeoutUsed = true; } else { ssP2TimeoutUsed = true; }
+    ssTimeoutActive = true;
+    ssHistory.push({ type: 'timeout', player });
+    ssUpdateUndoState();
+    ssRefreshButtonStates();
+
+    const name = player === 1 ? ssPlayer1Name : ssPlayer2Name;
+
+    ssServeStateEl.classList.remove('win');
+    ssShowServeBarMode('countdown');
+
+    ssCountdownEl.textContent = '';
+    ssAnnounce('60 seconds started');
+
+    setTimeout(() => {
+      ssCountdownEl.focus();
+
+      setTimeout(() => {
+        let remaining = 60;
+        ssCountdownEl.textContent = name + ' Time Out: ' + remaining;
+
+        function finishTimeoutCountdown(){
+          clearInterval(ssTimeoutIntervalId);
+          ssTimeoutIntervalId = null;
+          ssTimeoutActive = false;
+          ssActiveCountdownFinisher = null;
+          ssRefreshButtonStates();
+
+          ssAnnounce('Time out over');
+
+          setTimeout(() => {
+            ssShowServeBarMode('status');
+            ssServeStateEl.textContent = '';
+
+            setTimeout(() => {
+              ssRenderServe();
+              setTimeout(() => { ssAnnounceScores(); }, 500);
+            }, 60);
+          }, 500);
+        }
+
+        ssActiveCountdownFinisher = finishTimeoutCountdown;
+
+        ssTimeoutIntervalId = setInterval(() => {
+          remaining--;
+
+          if(remaining > 15){
+            ssCountdownEl.textContent = name + ' Time Out: ' + remaining;
+          } else if(remaining > 0){
+            const text = remaining + ' seconds';
+            ssCountdownEl.textContent = text;
+            if(remaining === 15){ ssAnnounce(text); }
+          }
+
+          if(remaining <= 0){
+            finishTimeoutCountdown();
+          }
+        }, 1000);
+      }, 60);
+    }, 0);
+  }
+
+  ssP1timeoutBtn.addEventListener('click', () => ssStartTimeout(1));
+  ssP2timeoutBtn.addEventListener('click', () => ssStartTimeout(2));
+
+  ssUndoBtn.addEventListener('click', () => {
+    if(ssHistory.length === 0) return;
+    const last = ssHistory.pop();
+
+    if(last.type === 'score'){
+      if(last.player === 1){ ssScore1 -= last.amount; } else { ssScore2 -= last.amount; }
+      ssServeState = last.prevServe;
+
+      ssRefreshButtonStates();
+      ssRenderScores();
+      ssRenderServe();
+      ssAnnounceScores();
+      ssUpdateUndoState();
+      ssUpdateWarnIndicatorUI(1);
+      ssUpdateWarnIndicatorUI(2);
+      ssApplyWinCheck();
+
+    } else if(last.type === 'warning'){
+      if(last.player === 1){ ssP1WarningIssued = false; } else { ssP2WarningIssued = false; }
+      ssRefreshButtonStates();
+      ssRenderScores();
+      ssRenderServe();
+      ssUpdateWarnIndicatorUI(last.player);
+      ssUpdateUndoState();
+
+    } else if(last.type === 'penalty'){
+      const opponent = last.player === 1 ? 2 : 1;
+      if(opponent === 1){ ssScore1 -= 2; } else { ssScore2 -= 2; }
+
+      ssRefreshButtonStates();
+      ssRenderScores();
+      ssRenderServe();
+      ssAnnounceScores();
+      ssUpdateWarnIndicatorUI(1);
+      ssUpdateWarnIndicatorUI(2);
+      ssUpdateUndoState();
+      ssApplyWinCheck();
+
+    } else if(last.type === 'timeout'){
+      if(ssTimeoutActive && ssTimeoutIntervalId !== null){
+        clearInterval(ssTimeoutIntervalId);
+        ssTimeoutIntervalId = null;
+        ssTimeoutActive = false;
+        ssActiveCountdownFinisher = null;
+        ssShowServeBarMode('status');
+      }
+
+      if(last.player === 1){ ssP1TimeoutUsed = false; } else { ssP2TimeoutUsed = false; }
+
+      ssRefreshButtonStates();
+      ssRenderScores();
+      ssRenderServe();
+      ssUpdateUndoState();
+    }
+  });
+
+  document.getElementById('resetBtnSs').addEventListener('click', () => {
+    if(ssTimeoutIntervalId){ clearInterval(ssTimeoutIntervalId); ssTimeoutIntervalId = null; }
+    ssActiveCountdownFinisher = null;
+    ssTimeoutActive = false;
+    ssP1TimeoutUsed = false;
+    ssP2TimeoutUsed = false;
+
+    ssScore1 = 0;
+    ssScore2 = 0;
+    ssServeState = 0;
+    ssHistory = [];
+    ssWinner = null;
+    ssP1WarningIssued = false;
+    ssP2WarningIssued = false;
+    ssShowServeBarMode('status');
+
+    ssMatchStartTime = new Date();
+    ssMatchEndTime = null;
+    ssPointsScoredSinceReset = false;
+
+    ssRefreshButtonStates();
+    ssRenderScores();
+    ssRenderServe();
+    ssUpdateUndoState();
+    ssUpdateWarnIndicatorUI(1);
+    ssUpdateWarnIndicatorUI(2);
+    ssAnnounce('Reset. ' + ssGetServeLabels()[ssServeState] + '. 0. 0.');
+  });
+
+  ssBackToNamesBtn.addEventListener('click', () => {
+    ssBackToNamesBtn.blur();
+
+    if(ssTimeoutIntervalId){ clearInterval(ssTimeoutIntervalId); ssTimeoutIntervalId = null; }
+    ssActiveCountdownFinisher = null;
+    ssTimeoutActive = false;
+    ssShowServeBarMode('status');
+
+    p1LandingNameInput.value = ssPlayer1Name;
+    p2LandingNameInput.value = ssPlayer2Name;
+    updateSwapButtonState();
+
+    selectedMode = 'singleSet';
+    updateModeButtons();
+
+    singleSetScoreboardPage.hidden = true;
+    landingPage.hidden = false;
+  });
+
+  ssRenderScores();
+  ssRenderServe();
+  ssUpdateUndoState();
+  ssUpdateWarnIndicatorUI(1);
+  ssUpdateWarnIndicatorUI(2);
+  ssRefreshButtonStates();
 </script>
 
 </body>
