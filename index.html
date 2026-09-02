@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Match Score Tracker</title>
+<title>ScoreDown</title>
 <style>
   :root{
     --bg: #000000;
@@ -42,6 +42,35 @@
   }
 
   /* ---------- LANDING PAGE ---------- */
+  .app-header{
+    flex: 0 0 auto;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding: 14px 12px;
+    gap: 4px;
+    background: var(--panel);
+  }
+  .app-title{
+    font-weight: 900;
+    letter-spacing: 0.03em;
+    color: var(--amber);
+    font-size: clamp(24px, 6vh, 48px);
+    outline: none;
+  }
+  .app-title:focus-visible{
+    outline: 3px solid var(--amber);
+    outline-offset: 4px;
+  }
+  .app-description{
+    font-weight: 500;
+    color: var(--text);
+    font-size: clamp(12px, 2.6vh, 18px);
+    opacity: 0.85;
+  }
+
   .mode-row{
     flex: 1;
     display:grid;
@@ -450,6 +479,10 @@
 <body>
 
   <div class="page" id="landingPage">
+    <div class="app-header">
+      <div class="app-title" id="appTitle" tabindex="-1" role="text">ScoreDown</div>
+      <div class="app-description">Your accessible showdown refereeing aid.</div>
+    </div>
     <div class="mode-row">
       <button type="button" class="mode-btn" id="singleSetModeBtn" aria-pressed="true">Single set</button>
       <button type="button" class="mode-btn" id="threeSetModeBtn" aria-pressed="false">3-set match</button>
@@ -2184,6 +2217,10 @@
   ssUpdateWarnIndicatorUI(1);
   ssUpdateWarnIndicatorUI(2);
   ssRefreshButtonStates();
+
+  setTimeout(() => {
+    document.getElementById('appTitle').focus();
+  }, 0);
 </script>
 
 </body>
