@@ -249,6 +249,28 @@
     outline-offset: -4px;
   }
 
+  .swap-row{
+    flex: 0 0 auto;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3px;
+  }
+  .landing-col{
+    display:flex;
+    flex-direction:column;
+  }
+  .coin-toss-result{
+    min-height: 20px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size: clamp(10px, 2vh, 14px);
+    color: var(--amber);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
   .landing-bottom{
     flex: 1;
     display:flex;
@@ -592,13 +614,23 @@
       </div>
     </div>
     <div class="landing-bottom">
-      <button class="swap-btn" id="swapNamesBtn">Swap player names</button>
+      <div class="swap-row">
+        <div class="landing-col">
+          <button class="swap-btn" id="coinTossBtn" aria-label="Coin Toss">Coin Toss</button>
+          <div class="coin-toss-result" id="coinTossResult" aria-hidden="true"></div>
+        </div>
+        <div class="landing-col">
+          <button class="swap-btn" id="swapNamesBtn">Swap player names</button>
+          <div class="coin-toss-result" aria-hidden="true"></div>
+        </div>
+      </div>
       <button class="ok-btn" id="okBtn">OK</button>
     </div>
     <div class="app-links-row">
       <button type="button" class="app-link-btn" id="tipBtn">Tip</button>
       <button type="button" class="app-link-btn" id="donateBtn">Donate</button>
     </div>
+    <div id="landingAnnouncer" class="sr-only" aria-live="polite" role="status"></div>
   </div>
 
   <div class="page" id="scoreboardPage" hidden>
@@ -763,8 +795,29 @@
   const p2LandingNameInput = document.getElementById('p2LandingNameInput');
   const okBtn = document.getElementById('okBtn');
   const swapNamesBtn = document.getElementById('swapNamesBtn');
+  const coinTossBtn = document.getElementById('coinTossBtn');
+  const coinTossResultEl = document.getElementById('coinTossResult');
+  const landingAnnouncer = document.getElementById('landingAnnouncer');
   const singleSetModeBtn = document.getElementById('singleSetModeBtn');
   const threeSetModeBtn = document.getElementById('threeSetModeBtn');
+
+  let coinTossResult = null; // null | 'Heads' | 'Tails'
+
+  function announceLanding(message){
+    landingAnnouncer.textContent = '';
+    setTimeout(() => { landingAnnouncer.textContent = message; }, 50);
+  }
+
+  function updateCoinTossDisplay(){
+    coinTossResultEl.textContent = coinTossResult || '';
+    coinTossBtn.setAttribute('aria-label', coinTossResult ? ('Coin Toss: ' + coinTossResult) : 'Coin Toss');
+  }
+
+  coinTossBtn.addEventListener('click', () => {
+    coinTossResult = Math.random() < 0.5 ? 'Heads' : 'Tails';
+    updateCoinTossDisplay();
+    announceLanding('Coin toss: ' + coinTossResult);
+  });
 
   let selectedMode = 'singleSet'; // 'singleSet' | 'threeSet'
 
@@ -851,6 +904,9 @@
 
   okBtn.addEventListener('click', () => {
     okBtn.blur();
+
+    coinTossResult = null;
+    updateCoinTossDisplay();
 
     if(selectedMode === 'singleSet'){
       if(!ssPointsScoredSinceReset){ ssMatchStartTime = new Date(); }
